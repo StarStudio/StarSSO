@@ -1,8 +1,8 @@
--- MySQL dump 10.16  Distrib 10.1.35-MariaDB, for Linux (x86_64)
+-- MySQL dump 10.16  Distrib 10.1.36-MariaDB, for Linux (x86_64)
 --
 -- Host: localhost    Database: starstudio
 -- ------------------------------------------------------
--- Server version	10.1.35-MariaDB
+-- Server version	10.1.36-MariaDB
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -28,8 +28,8 @@ CREATE TABLE `check_status` (
   `check_times` int(11) NOT NULL,
   KEY `gid` (`gid`),
   KEY `uid` (`uid`),
-  CONSTRAINT `check_status_ibfk_1` FOREIGN KEY (`gid`) REFERENCES `work_group` (`gid`),
-  CONSTRAINT `check_status_ibfk_2` FOREIGN KEY (`uid`) REFERENCES `user` (`uid`)
+  CONSTRAINT `check_status_ibfk_1` FOREIGN KEY (`gid`) REFERENCES `work_group` (`id`),
+  CONSTRAINT `check_status_ibfk_2` FOREIGN KEY (`uid`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -54,8 +54,8 @@ CREATE TABLE `group_members` (
   `uid` int(11) NOT NULL,
   KEY `gid` (`gid`),
   KEY `uid` (`uid`),
-  CONSTRAINT `group_members_ibfk_1` FOREIGN KEY (`gid`) REFERENCES `work_group` (`gid`),
-  CONSTRAINT `group_members_ibfk_2` FOREIGN KEY (`uid`) REFERENCES `user` (`uid`)
+  CONSTRAINT `group_members_ibfk_1` FOREIGN KEY (`gid`) REFERENCES `work_group` (`id`),
+  CONSTRAINT `group_members_ibfk_2` FOREIGN KEY (`uid`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -79,10 +79,11 @@ CREATE TABLE `record` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `uid` int(11) NOT NULL,
-  `chktime` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `pic_id` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `chktime` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `result` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`)
+  PRIMARY KEY (`id`),
+  KEY `uid` (`uid`),
+  CONSTRAINT `record_ibfk_1` FOREIGN KEY (`uid`) REFERENCES `user` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -104,15 +105,15 @@ DROP TABLE IF EXISTS `user`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `user` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `uid` int(11) NOT NULL,
   `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  `birthday` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `birthday` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
   `sex` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `address` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `tel` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `mail` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `admin_level` int(11) NOT NULL,
   PRIMARY KEY (`id`),
-  UNIQUE KEY `uid` (`uid`)
+  UNIQUE KEY `id` (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -134,11 +135,9 @@ DROP TABLE IF EXISTS `work_group`;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `work_group` (
   `id` int(11) NOT NULL AUTO_INCREMENT,
-  `gid` int(11) NOT NULL,
   `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `desp` text COLLATE utf8mb4_unicode_ci NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `gid` (`gid`)
+  PRIMARY KEY (`id`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
 
@@ -160,4 +159,4 @@ UNLOCK TABLES;
 /*!40101 SET COLLATION_CONNECTION=@OLD_COLLATION_CONNECTION */;
 /*!40111 SET SQL_NOTES=@OLD_SQL_NOTES */;
 
--- Dump completed on 2018-08-24 19:37:47
+-- Dump completed on 2018-09-23  1:10:52
