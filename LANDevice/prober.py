@@ -1,9 +1,10 @@
-import psutil
 import re
-import scapy.all
+#import scapy.all
 import gevent
 import weakref
 import ipdb
+import netifaces
+import socket
 
 from datetime import datetime
 from apscheduler.schedulers.gevent import GeventScheduler
@@ -13,26 +14,28 @@ from gevent.queue import Queue, Empty
 from .error import InterfaceNotFoundError
 from .utils import IPv4ToInt, IntToIPv4
 from .config import LANDeviceProberConfig
+from .arp import ARPRequest
 
-
-def _probe_fibre(_addr, _timeout, _queue):
+def _probe_fibre(_addr, _interface, _timeout, _queue):
     #ans, unans = scapy.all.sr(scapy.all.IP(dst = _addr) / scapy.all.ICMP(type=8), timeout = _timeout, verbose = False)
-    ans, unans = scapy.all.sr(scapy.all.ARP(pdst = _addr, hwdst="ff:ff:ff:ff:ff:ff"), timeout = _timeout, verbose = False)
-    if len(ans) > 0:
-        _queue.put((_addr, True))
+    #ans, unans = scapy.all.sr(scapy.all.ARP(pdst = _addr, hwdst="ff:ff:ff:ff:ff:ff"), timeout = _timeout, verbose = False)
+    #if len(ans) > 0:
+    #    _queue.put((_addr, True))
+    #else:
+    #    _queue.put((_addr, False))
+    mac = ''
+    try: 
+        mac = ARPRequest(_interface, _addr, _timeout * 1000)
+    except socket.timeout as e:
+        pass
+
+    if mac != '':
+        _queue.put((_addr, mac, True))
     else:
-        _queue.put((_addr, False))
+        _queue.put((_addr, mac, False))
 
 
-def _arp_fibre(_addr, _timeout, _queue):
-    ans, unans = scapy.all.sr(scapy.all.ARP(pdst = _addr), timeout = _timeout)
-    if ans < 1:
-        return
-    _queue.put((_addr, ans[0][1].hwsrc))
-
-        
 class LANDeviceProber:
-    #RE_IPV4_ADDR = re.compile('(?:(25[0-5]|2[0-5]\d|[0-1]\d{2}|\d)\.){3}(25[0-5]|2[0-5]\d|[0-1]\d{2})')
 
     def __init__(self, _config):
         self.sem_running = Semaphore()
@@ -48,11 +51,11 @@ class LANDeviceProber:
 
 
     def _update_address(self):
-        net_ifces = psutil.net_if_addrs()
-        if self.interface not in net_ifces:
+        try:
+            ifce_addrs = netifaces.ifaddresses(self.interface)
+        except ValueError as e:
             return None
-
-        new_watched_addrs = set([(info.address, info.netmask) for info in net_ifces[self.interface] if IPv4ToInt(info.address) > 0])
+        new_watched_addrs = set([(info['addr'], info['netmask']) for info in ifce_addrs[netifaces.AF_INET]]) 
         if self.watched_addrs != new_watched_addrs:
             self.sem.acquire()
             self.watched_addrs = new_watched_addrs
@@ -66,7 +69,6 @@ class LANDeviceProber:
 
     def _update_device_list(self, _alive_set):
         print(_alive_set)
-        pass
 
 
     def _device_probe_procedure(self):
@@ -79,7 +81,8 @@ class LANDeviceProber:
                 mask_int = IPv4ToInt(mask)
                 for host_int in range(0, (mask_int ^ 0xFFFFFFFF) + 1):
                     probe_addr = IntToIPv4((addr_int & mask_int) | host_int)
-                    yield gevent.spawn(_probe_fibre, _addr = probe_addr, _timeout = 5, _queue = result_queue)
+                    yield gevent.spawn(_probe_fibre, _addr = probe_addr, _timeout = 5, _queue = result_queue, _interface = self.interface)
+                    
 
         fibres = weakref.WeakSet()
         alive_set = set()
@@ -91,7 +94,7 @@ class LANDeviceProber:
         gevent.wait(list(fibres))
 
         while not result_queue.empty():
-            probed_addr, is_alive = result_queue.get(block=False)
+            probed_addr, _, is_alive = result_queue.get(block=False)
             if is_alive:
                 alive_set.add(probed_addr)
 

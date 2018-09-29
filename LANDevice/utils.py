@@ -1,5 +1,9 @@
 
 def IPv4ToInt(_ipv4):
+    if _ipv4.__class__ is int:
+        if _ipv4 > 0xFFFFFFFF:
+            return -1
+        return _ipv4
     parts = _ipv4.split('.')
     if len(parts) != 4:
         return -1
