@@ -1,10 +1,10 @@
 import re
-#import scapy.all
 import gevent
 import weakref
-import ipdb
 import netifaces
 import socket
+import redis
+import uuid
 
 from datetime import datetime
 from apscheduler.schedulers.gevent import GeventScheduler
@@ -17,12 +17,6 @@ from .config import LANDeviceProberConfig
 from .arp import ARPRequest
 
 def _probe_fibre(_addr, _interface, _timeout, _queue):
-    #ans, unans = scapy.all.sr(scapy.all.IP(dst = _addr) / scapy.all.ICMP(type=8), timeout = _timeout, verbose = False)
-    #ans, unans = scapy.all.sr(scapy.all.ARP(pdst = _addr, hwdst="ff:ff:ff:ff:ff:ff"), timeout = _timeout, verbose = False)
-    #if len(ans) > 0:
-    #    _queue.put((_addr, True))
-    #else:
-    #    _queue.put((_addr, False))
     mac = ''
     try: 
         mac = ARPRequest(_interface, _addr, _timeout * 1000)
@@ -35,9 +29,86 @@ def _probe_fibre(_addr, _interface, _timeout, _queue):
         _queue.put((_addr, mac, False))
 
 
+class LANDevicePublish:
+    
+    def __init__(self, _config):
+        self._config = _config
+        self._naked_id = str(uuid.uuid4()).replace('-', '')
+        self._publisher_set = _config.redis_prefix + '_landev_publishers'
+        self._publish_set = _config.redis_prefix + '_publish_' + self._naked_id
+        self._event_listener_set = _config.redis_prefix + '_listeners' 
+        self._redis = redis.Redis(host = _config.redis_host, port = _config.redis_port)
+        self._init_redis_publisher_list()
+
+
+    def _init_redis_publisher_list(self):
+        '''
+        '''
+        # KEYS:
+        #   1:  publisher_set
+        #   2:  publish_set
+        # ARGV:
+        #   1:  Expire time for publish_set in seconds.
+        REDIS_INIT_LUA = '''
+            redis.call('sadd', KEYS[1], KEYS[2])
+            redis.call('sadd', KEYS[2], '')
+            redis.call('expire', KEYS[2], ARGV[1])
+            return 1
+        '''
+        # Empty entry to keep myself alive in pushlisher set
+        self._redis.eval(REDIS_INIT_LUA, 2, self._publisher_set, self._publish_set, self._config.probe_interval * 2)
+
+        
+    def PublishDevices(self, _devices):
+        '''
+            Publish new device list.
+
+            :params:
+                _devices    (ip, mac) tuple pairs for devices.
+
+        '''
+        devices = ['%s,%s' % (ip, mac) for ip, mac in _devices]
+        # KEYS:
+        #   1: publish_set 
+        #   2: Expire time for publish_set in seconds.
+        #   3: listener_set
+        # ARGV:
+        #   device information entries
+        REDIS_UPDATE_LUA = '''
+            redis.call('sadd', KEYS[1] .. '_new_set', unpack(ARGV))
+            local joined = redis.call('sdiff', KEYS[1] .. '_new_set', KEYS[1])
+            local left = redis.call('sdiff', KEYS[1], KEYS[1] .. '_new_set')
+            redis.call('del', KEYS[1])
+            redis.call('rename', KEYS[1] .. '_new_set', KEYS[1])
+            redis.call('expire', KEYS[1], KEYS[2])
+
+            local listeners = redis.call('smembers', KEYS[3])
+            for i = 1, #listeners, 1 do
+                repeat 
+                    if false == redis.call('get', listeners[i] .. '_expire') then
+                        redis.call('srem', KEYS[3], listeners[i])
+                        break
+                    end
+                    for i = 1, #joined, 1 do
+                        joined[i] = 'joi|' .. joined[i]
+                    end
+                    for i = 1, #left, 1 do
+                        left[i] = 'lef|' .. left[i]
+                    end
+                    redis.call('lpush', listeners[i], unpack(joined))
+                    redis.call('lpush', listeners[i], unpack(left))
+                until true
+            end
+            return #ARGV
+        '''
+        self._redis.eval(REDIS_UPDATE_LUA, 3, self._publish_set, self._config.probe_interval * 2, self._event_listener_set, *devices)
+
+
+
 class LANDeviceProber:
 
     def __init__(self, _config):
+        self.publish_port = LANDevicePublish(_config)
         self.sem_running = Semaphore()
         self.sem_stop = Semaphore()
 
@@ -69,6 +140,7 @@ class LANDeviceProber:
 
     def _update_device_list(self, _alive_set):
         print(_alive_set)
+        self.publish_port.PublishDevices(_alive_set)
 
 
     def _device_probe_procedure(self):
@@ -86,17 +158,15 @@ class LANDeviceProber:
 
         fibres = weakref.WeakSet()
         alive_set = set()
-        print('start fibres.')
         for fibre in fibre_gen(addrs):
             fibres.add(fibre)
-        print('fibres started.')
 
         gevent.wait(list(fibres))
 
         while not result_queue.empty():
-            probed_addr, _, is_alive = result_queue.get(block=False)
+            probed_addr, mac, is_alive = result_queue.get(block=False)
             if is_alive:
-                alive_set.add(probed_addr)
+                alive_set.add((probed_addr, mac))
 
         for fibre in fibres:
             gevent.kill(fibre)
@@ -164,10 +234,4 @@ class LANDeviceProber:
         self.sched.start()
                     
         return True
-
-
-
-class LANDeviceList:
-    def __init__(self, _redis_url):
-        pass
 

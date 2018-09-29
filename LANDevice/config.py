@@ -8,11 +8,14 @@ class LANDeviceProberConfig:
             , ('probe_interval', 'LAN_DEV_LIVENESS_PROBE_INTERVAL', int)
             , ('redis', 'REDIS_URL', str)
             , ('interface', "LAN_DEV_INTERFACE", str)
+            , ('redis_prefix', "LAN_DEV_REDIS_PROBER_IDENT_PREFIX", str)
         ])
 
     probe_timeout = 5
     probe_interval = 30
-    redis = ''
+    redis_host = 'localhost'
+    redis_port = 6379
+    redis_prefix = '123'
     interface = ''
 
     def FromEnv(self, _env):
