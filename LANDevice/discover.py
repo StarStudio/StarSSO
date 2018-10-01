@@ -5,7 +5,6 @@ import netifaces
 import socket
 import redis
 import uuid
-import ipdb
 
 from datetime import datetime, timedelta
 from apscheduler.schedulers.gevent import GeventScheduler
