@@ -334,6 +334,7 @@ class LANDeviceProber:
                         , trigger = 'interval'
                         , seconds = self._config.probe_interval)
 
+        self.device_probe_job.modify(next_run_time = datetime.now())
 
         self.sched.start()
                     
