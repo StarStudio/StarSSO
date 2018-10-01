@@ -5,12 +5,14 @@ import netifaces
 import socket
 import redis
 import uuid
+import ipdb
 
-from datetime import datetime
+from datetime import datetime, timedelta
 from apscheduler.schedulers.gevent import GeventScheduler
 from gevent.lock import Semaphore
 from gevent.event import Event
 from gevent.queue import Queue, Empty
+from .ping import ping
 from .error import InterfaceNotFoundError
 from .utils import IPv4ToInt, IntToIPv4
 from .config import LANDeviceProberConfig
@@ -45,7 +47,6 @@ class LANDevicePublish:
         self._publish_set = _config.redis_prefix + '_publish_' + self._naked_id
         self._event_listener_set = _config.redis_prefix + '_listeners' 
         self._redis = redis.Redis(host = _config.redis_host, port = _config.redis_port)
-        #self._alive_tracker = weakref.WeakValueDirectory()
         self._liveness_info = {} 
         self._init_redis_publisher_list()
         
@@ -137,6 +138,10 @@ class LANDeviceProber:
 
         self.sem = Semaphore()
         self.watched_addrs = set()
+        self._device_last_alive = {} # mac -> (timestamp, ip -> tracker (Weak))
+        self._alive_tracker = weakref.WeakValueDictionary() # ip -> tracker
+        self._tracker_info = weakref.WeakKeyDictionary() # tracker -> mac
+        
 
         self.interface = _config.interface
         if self._update_address() is None:
@@ -165,25 +170,84 @@ class LANDeviceProber:
             Entrypoint of address updating procedure.
         '''
         self._update_address()
-
+        
 
     def _update_device_list(self, _alive_set):
         '''
             Called when a new liveness-probing result generated.
         '''
-        print(_alive_set)
-        self.publish_port.PublishDevices(_alive_set)
+
+        cur_time = datetime.now()
+        to_remove = [mac for mac, info in self._device_last_alive.items() \
+            if cur_time > info[0] + 2 * timedelta(seconds = self._config.probe_interval)]
+        for mac in to_remove:
+            print('Device leave: %s' % mac)
+            del self._device_last_alive[mac]
+
+                
+        device_ip_bind = {}
+        for ip, mac in _alive_set:
+            ip_set = device_ip_bind.get(ip, None)
+            if ip_set is None:
+                ip_set = set()
+                device_ip_bind[mac] = ip_set
+            ip_set.add(ip)
+
+        # Start trackers
+        for mac, ip_set in device_ip_bind.items():
+            _, trackers = self._device_last_alive.get(mac, (None, None))
+            if trackers is None:
+                print('Join: %s' % mac)
+                trackers = weakref.WeakValueDictionary()
+                self._device_last_alive[mac] = [datetime.now(), trackers]
+
+            for ip in ip_set:
+                tracker = trackers.get(ip, None)
+                if tracker is None:
+                    tracker = gevent.spawn(self._device_liveness_tracker, ip)
+                    trackers[ip] = tracker
+                    self._alive_tracker[ip] = tracker
+                    self._tracker_info[tracker] = mac
+                    print('Device presents at %s' % ip)
+                elif mac != self._tracker_info[tracker]:
+                    self._tracker_info[tracker] = mac
+
+        new_alive_set = set([(ip, mac) for ip, _ in trackers.items() for mac, (timestamp, trackers) in self._device_last_alive.items()])
+        self.publish_port.PublishDevices(new_alive_set)
 
 
-    def _device_liveness_tracker(self, _ip, _mac):
+    def _device_liveness_tracker(self, _ip):
         '''
-            Track the state of specified online device.
+            Track the state of specified online device
 
             :params:
                 _ip         IPv4 Address string.
                 _mac        MAC Address string.
         '''
-        pass
+        myself = self._alive_tracker.get(_ip)
+        if myself is None:
+            raise RuntimeError('Cannot find myself at tracker dictionary.')
+
+        while True:
+            mac = self._tracker_info.get(myself, None)
+            cur_time = datetime.now()
+            if mac is None:
+                raise RuntimeError('Tracker is not bind with mac.')
+            timestamp, _ = self._device_last_alive.get(mac, (None, None))
+            if timestamp is None \
+                or cur_time >= timestamp + 2 * timedelta(seconds = self._config.probe_interval):
+                break
+            #print('liveness probe: %s' % _ip)
+            delay = ping(_ip, self._config.probe_timeout)
+            #print('liveness probe result %s for %s' % (str(delay), _ip))
+            if delay is not None:
+                #print('Alive : %s -> %s ' % (_ip, mac))
+                cur_time = datetime.now()
+                self._device_last_alive[mac][0] = cur_time
+            gevent.sleep(self._config.track_interval)
+        print('Leave: %s' % _ip)
+            
+        
         
 
     def _device_probe_procedure_lead(self):
