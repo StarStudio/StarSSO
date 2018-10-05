@@ -3,16 +3,23 @@
 # create at 2018-04-28 23:37:52
 
 import os
+import os.path
 import logging
 import uuid
 import json
+import ipdb
 
 import uuid
 import json
-from .info_api import info_api
+from jwcrypto.jwk import JWK
+from jwcrypto.common import json_decode
 from flask import Flask, current_app
 from flaskext.mysql import MySQL
 from functools import wraps
+from base64 import b64encode, b64decode
+
+from .info_api import info_api
+from .utils import password_hash
 
 app = Flask(__name__)
 
@@ -49,10 +56,70 @@ def make_log_level_wrapper(_level):
             return _function(level, msg, *arg, **kwarg)
         return level_log_wrapper
     return level_wrapper_wrap
-    
 
-@app.before_first_request
-def app_init():
+
+def load_jwt_key():
+    key_path = current_app.config.get('SECRET_KEY_FILE', 'jwt.pri')
+    if key_path is None:
+        raise RuntimeError('SECRET_KEY_FILE not configured.')
+    try:
+        key_io = open(key_path, 'rb')
+    except FileNotFoundError as e:
+        key_io = None
+
+    if key_io is None:
+        key_io = open(key_path, 'wb+') 
+        key = JWK(generate='RSA', size=1024)
+        pem = key.export_to_pem(private_key=True, password = None)
+        key_io.write(pem)
+    else:
+        pem = key_io.read()
+        key = JWK()
+        key.import_from_pem(pem)
+    key_io.close()
+    os.chmod(key_path, current_app.config.get('SECRET_KEY_FILE_MODE', 0o600))
+    pub_key_path = current_app.config.get('PUBLIC_KEY_FILE', None)
+    if pub_key_path is not None:
+        if not os.path.isfile(pub_key_path):
+            try:
+                pub_io = open(pub_key_path, 'wb+')
+                pem = key.export_to_pem()
+                pub_io.write(pem)
+                pub_io.close()
+            except PermissionError as e:
+                pass
+        os.chmod(pub_key_path, current_app.config.get('PUBLIC_KEY_FILE_MODE', 0o666))
+
+    return key
+
+def load_digest_salt():
+    current_app.reset_admin_account = False
+
+    salt_path = current_app.config.get('SALT_FILE', None)
+    if salt_path is None:
+        raise RuntimeError('SALT_FILE not configured.')
+    try:
+        salt_io = open(salt_path, 'rt')
+    except FileNotFoundError as e:
+        salt_io = None
+
+    if salt_io is None:
+        salt_io = open(salt_path, 'wt')
+        salt = os.urandom(16)
+        salt_text = b64encode(salt_random)
+        salt_io.write(salt_text)
+        current_app.reset_admin_account = True
+    else:
+        salt_io = open(salt_path, 'rt')
+        salt_text = salt_io.read()
+        salt = b64decode(salt_text)
+    salt_io.close()
+    os.chmod(salt_path, current_app.config.get('SALT_FILE_MODE', 0o600))
+
+    return salt
+        
+
+def generate_logger():
     app.access_logger = logging.getLogger('access_log')
     app.access_logger.setLevel(logging.INFO)
     if 'ACCESS_LOG' in app.config:
@@ -79,3 +146,36 @@ def app_init():
             app.log_debug = make_log_time_wrapper(app.debug_logger.log)
             app.log_debug = make_log_level_wrapper(logging.DEBUG)(app.log_debug)
 
+
+
+def init_admin_account():
+    if current_app.reset_admin_account is True:
+        print('Administrator account will be reset due to the change of password salt.')
+        current_app.access_logger.info('Administrator account will be reset due to the change of password salt.')
+    default_secret = password_hash('starstudio')
+
+    conn = current_app.mysql.connect()
+    conn.begin()
+    c = conn.cursor()
+    try:
+        c.execute('delete from auth where username=\'Admin\'')
+        c.execute('delete from user where id=0')
+        affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (0, \'Administrator\', \'Unknown\', \'\', \'auth r_info_self w_info_self r_info w_info manage_user\')')
+        uid = c.lastrowid
+        c.execute('insert into auth(uid, username, secret) values (%s, \'Admin\', %s)', (uid, ))
+
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+    finally:
+        conn.commit()
+
+
+ 
+@app.before_first_request
+def app_init():
+    current_app.jwt_key = load_jwt_key()
+    current_app.digest_salt = load_digest_salt()
+    generate_logger()
+    init_admin_account()

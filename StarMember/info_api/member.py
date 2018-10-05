@@ -42,7 +42,7 @@ class MemberAccessView(SignAPIView):
         conn.begin()
         c = conn.cursor()
         try:
-            affected = c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.admin_level, user.id, group_members.gid from user left join group_members on user.id=group_members.uid where user.id=%s', (uid,))
+            affected = c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.access_verbs, user.id, group_members.gid from user left join group_members on user.id=group_members.uid where user.id=%s', (uid,))
             if affected < 1:
                 conn.commit()
                 return {'code':1422, 'msg':"User not exists.", 'data': ''}
@@ -65,7 +65,7 @@ class MemberAccessView(SignAPIView):
                 , 'address': result[3]
                 , 'tel': result[4]
                 , 'mail': result[5]
-                , 'admin_level': int(result[6])
+                , 'access_verbs': result[6].split(' ')
                 , 'id': int(result[7])
                 , 'gid': int(result[8]) if result[8] is not None else None
             }
@@ -77,7 +77,7 @@ class MemberAccessView(SignAPIView):
         if len(post_data) < 1:
             return jsonify({'code': 0, 'msg': 'success', 'data': ''})
 
-        type_checker = post_data_type_checker(name = str, birthday = str, sex = str, tel = str, mail = str, admin_level = int)
+        type_checker = post_data_type_checker(name = str, birthday = str, sex = str, tel = str, mail = str)
         ok, err_msg = type_checker(post_data)
         if not ok:
             return jsonify({
@@ -90,18 +90,18 @@ class MemberAccessView(SignAPIView):
         c = conn.cursor()
         
         try:
-            affected = c.execute('select name, birthday, sex, address, tel, mail, admin_level from user where id=%s', (uid,))
+            affected = c.execute('select name, birthday, sex, address, tel, mail, access_verbs from user where id=%s', (uid,))
             if affected < 1:
                 conn.commit()
                 return jsonify({'code': 1422, 'msg': 'User not exists.', 'data': ''})
             info = list(c.fetchall()[0])
 
-            update_keywords = ('name', 'birthday', 'sex', 'address', 'tel', 'mail', 'admin_level')
+            update_keywords = ('name', 'birthday', 'sex', 'address', 'tel', 'mail', 'access_verbs')
             for i in range(0, len(update_keywords)):
                 if update_keywords[i] in post_data:
                     info[i] = post_data[update_keywords[i]]
             
-            c.execute('update user set name = %s, birthday = %s, sex = %s, address = %s, tel = %s, mail = %s, admin_level = %s', tuple(info))
+            c.execute('update user set name = %s, birthday = %s, sex = %s, address = %s, tel = %s, mail = %s, access_verbs = %s', tuple(info))
             conn.commit()
         except Exception as e:
             # log exception here with uid
@@ -143,15 +143,15 @@ class MemberAPIView(SignAPIView):
         try:
             if 'gid' in request.post_data:
                 if 'uid' in request.post_data:
-                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.admin_level, group_members.uid, group_members.gid from group_members inner join user on user.id=group_members.uid where (group_members.gid=%s and group_members.uid=%s)', (request.post_data['gid'], request.post_data['uid']))
+                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.access_verbs, group_members.uid, group_members.gid from group_members inner join user on user.id=group_members.uid where (group_members.gid=%s and group_members.uid=%s)', (request.post_data['gid'], request.post_data['uid']))
                 else:
-                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.admin_level, group_members.uid, group_members.gid from group_members inner join user on user.id=group_members.uid where group_members.gid=%s', (request.post_data['gid'],))
+                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.access_verbs, group_members.uid, group_members.gid from group_members inner join user on user.id=group_members.uid where group_members.gid=%s', (request.post_data['gid'],))
                     
             else:
                 if 'uid' in request.post_data:
-                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.admin_level, user.id, group_members.gid from user left join group_members on group_members.uid=user.id where user.id=%s', (request.post_data['uid'],))
+                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.access_verbs, user.id, group_members.gid from user left join group_members on group_members.uid=user.id where user.id=%s', (request.post_data['uid'],))
                 else:
-                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.admin_level, user.id, group_members.gid from user left join group_members on group_members.uid=user.id')
+                    c.execute('select user.name, user.birthday, user.sex, user.address, user.tel, user.mail, user.access_verbs, user.id, group_members.gid from user left join group_members on group_members.uid=user.id')
 
             results = c.fetchall()
             conn.commit()
@@ -172,7 +172,7 @@ class MemberAPIView(SignAPIView):
                 , 'address': item[3]
                 , 'tel': item[4]
                 , 'mail': item[5]
-                , 'admin_level': int(item[6])
+                , 'access_verbs': item[6]
                 , 'uid': int(item[7])
                 , 'gid': int(item[8]) if item[8] is not None else None
             } for item in results]    
