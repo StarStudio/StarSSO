@@ -1,6 +1,7 @@
 from flask import Blueprint
 from .group import GroupAPIView
 from .member import MemberAPIView, MemberAccessView
+#from .token import TokenAuthView
 
 info_api = Blueprint("MemberAPI", __name__, url_prefix = "/v1/star")
 
@@ -11,3 +12,4 @@ def ping():
 info_api.add_url_rule('/member', view_func=MemberAPIView.as_view('MemberAPI'))
 info_api.add_url_rule('/member/<int:uid>', view_func=MemberAccessView.as_view('MemberAccessAPI'))
 info_api.add_url_rule('/group', view_func=GroupAPIView.as_view('GroupAPI'))
+#info_api.add_url_rule('/token', view_func = TokenAuthView.as_view('TokenAuth'))
