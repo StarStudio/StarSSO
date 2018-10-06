@@ -11,7 +11,6 @@ from .utils import new_encoded_token, decode_token
 from base64 import b64decode
 from datetime import datetime, timedelta
 
-import ipdb
 
 
 sso_api = Blueprint('Single Sign-on', __name__, url_prefix = '/sso')
@@ -133,8 +132,6 @@ class LoginView(MethodView):
                 return make_response(jsonify({'code': 1423, 'msg' : 'No such application', 'data': ''}), 200)
             name, redirect_prefix, verbs = c.fetchall()[0]
 
-            
-            ipdb.set_trace()
             if redirect_url is not None and redirect_url[:len(redirect_prefix)] != redirect_prefix:
                 return make_response('Invalid redirect URL prefix.', 200)
 
