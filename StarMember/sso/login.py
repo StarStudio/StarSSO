@@ -1,8 +1,9 @@
 import os
 import uuid
+import werkzeug
 
 from traceback import format_exc
-from flask import Blueprint, current_app, make_response, request, abort, jsonify
+from flask import Blueprint, current_app, make_response, request, abort, jsonify, redirect
 from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker
 from StarMember.utils import password_hash
@@ -76,17 +77,17 @@ class LoginView(MethodView):
         # set request.auth_user, request.auth_password and request.current_user_verbs if user succeeds to login.
         # set request.current_conn to mysql connection
         try:
+            auth_expire = current_app.config.get('AUTH_TOKEN_EXPIRE_DEFAULT', 86400)
             request.current_conn = current_app.mysql.connect()
             new_auth_token = None
             new_auth_token_expire = None
             
-            ipdb.set_trace()
             if not self.cookie_token_auth():
                 resp = self.http_basic_auth()
                 if resp is not None:
                     return resp
                 # Generate 
-                new_auth_token_expire = datetime.now() + timedelta(seconds=86400)
+                new_auth_token_expire = datetime.now() + timedelta(seconds=auth_expire)
                 new_auth_token = new_encoded_token(request.auth_user, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
                 
             resp = super().dispatch_request()
@@ -116,9 +117,11 @@ class LoginView(MethodView):
 
         appid = args.get('appid', None)
         if appid is None:
-            return None
+            return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data':''}), 200)
+
 
         redirect_url = args.get('redirectURL', None)
+        app_expire = current_app.config.get('APP_TOKEN_EXPIRE_DEFAULT', 86400)
 
         conn = request.current_conn
         conn.begin()
@@ -129,15 +132,30 @@ class LoginView(MethodView):
             if affected < 1:
                 return make_response(jsonify({'code': 1423, 'msg' : 'No such application', 'data': ''}), 200)
             name, redirect_prefix, verbs = c.fetchall()[0]
+
+            
+            ipdb.set_trace()
+            if redirect_url is not None and redirect_url[:len(redirect_prefix)] != redirect_prefix:
+                return make_response('Invalid redirect URL prefix.', 200)
+
             application_verbs = verbs.split(' ')
-            expire = datetime.now() + timedelta(seconds=86400)
+            expire = datetime.now() + timedelta(seconds=app_expire)
             app_token = new_encoded_token(request.auth_user, application_verbs, request.current_user_verbs, _expire = expire, _token_type = 'application')
 
         except Exception as e:
             conn.rollback()
             raise e
 
-        return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data': {'token': app_token}}), 200)
+        if not redirect_url: 
+            return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data': {'token': app_token}}), 200)
+
+        full_redir_url = redirect_url + '?' + werkzeug.url_encode({
+            'appid': appid
+            , 'token': app_token
+        })
+
+        return redirect(full_redir_url, 302)
+        
 
 
 sso_api.add_url_rule('/login', view_func=LoginView.as_view('SSOAPI'))
