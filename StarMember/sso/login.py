@@ -1,16 +1,19 @@
 import os
 import uuid
 
-from exception import format_exc
-from flask import Blueprint, current_app, MethodView, make_response, request, abort
+from traceback import format_exc
+from flask import Blueprint, current_app, make_response, request, abort, jsonify
+from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker
 from StarMember.utils import password_hash
 from .utils import new_encoded_token, decode_token
 from base64 import b64decode
 from datetime import datetime, timedelta
 
+import ipdb
 
-sso_api = Blueprint('Single sign-on', __name__, url_prefix = '/sso')
+
+sso_api = Blueprint('Single Sign-on', __name__, url_prefix = '/sso')
 
 
 class LoginView(MethodView):
@@ -19,7 +22,7 @@ class LoginView(MethodView):
     def http_basic_auth(self):
         auth_header = request.headers.get('Authorization', None)
         if None is auth_header:
-            return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data':''}, 403)
+            return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data':''}), 403)
         splited = auth_header.split(' ')
         
         if len(splited) != 2:
@@ -29,7 +32,7 @@ class LoginView(MethodView):
             return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
 
         try:
-            splited = b64encode(auth_content).split(':')
+            splited = b64decode(auth_content.encode('ascii')).decode('ascii').split(':')
             if len(splited) != 2:
                 return make_response(jsonify({'code': 1202, 'msg': 'Bad request', 'data': ''}), 400)
             request.auth_user, request.auth_password = splited
@@ -39,11 +42,12 @@ class LoginView(MethodView):
         conn.begin()
         c = conn.cursor()
         try:
-            affected = c.execute('select auth.secret, user.access_verbs from auth inner join user on auth=user.id where auth.username=%s', (request.auth_user,))
+            affected = c.execute('select auth.secret, user.access_verbs from auth inner join user on auth.uid=user.id where auth.username=%s', (request.auth_user,))
             secret, verbs = c.fetchall()[0]
+            verbs = verbs.split(' ')
             require_secret = password_hash(request.auth_password)
             if require_secret != secret:
-                return make_response(jsonify({'code': 1201, 'msg': 'Bad request', 'data':'' }), 403)
+                return make_response(jsonify({'code': 1201, 'msg': 'Invali User or Password', 'data':'' }), 403)
             request.current_user_verbs = set(verbs)
         except Exception as e:
             conn.rollback()
@@ -72,42 +76,48 @@ class LoginView(MethodView):
         # set request.auth_user, request.auth_password and request.current_user_verbs if user succeeds to login.
         # set request.current_conn to mysql connection
         try:
-            current_app.current_conn = current_app.mysql.connect()
+            request.current_conn = current_app.mysql.connect()
             new_auth_token = None
             new_auth_token_expire = None
+            
+            ipdb.set_trace()
             if not self.cookie_token_auth():
                 resp = self.http_basic_auth()
                 if resp is not None:
                     return resp
                 # Generate 
                 new_auth_token_expire = datetime.now() + timedelta(seconds=86400)
-                new_auth_token = new_encoded_token(request.auth_user, current_app.current_user_verbs, current_app.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'application')
+                new_auth_token = new_encoded_token(request.auth_user, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
                 
             resp = super().dispatch_request()
 
+
             if new_auth_token:
                 resp.set_cookie('token', value = new_auth_token, domain = request.environ['SERVER_NAME'], expires = new_auth_token_expire.timestamp(), path = '/sso/login')
-            
+ 
         except Exception as e:
             expection_id = uuid.uuid4()
             exc_info = 'Exception %s: \n' % str(expection_id).replace('-', '') + format_exc()
-            current_app.log_error.error(exc_info)
+            current_app.log_error(exc_info)
             print(exc_info)
             return make_response(jsonify({'code': 1504, 'msg': 'Server throw an exception with ID: %s' % expection_id, 'data': ''}), 500)
         finally:
-            conn.close()
+            request.current_conn.close()
 
         return resp
 
 
     def get(self):
-        args = current_app.args.copy()
+        args = request.args.copy()
         type_checker = post_data_type_checker(appid = int, redirectURL = str)
         ok, err_msg = type_checker(args)
         if not ok:
             return make_response('Wrong arguments submitted.')
 
-        appid = args.get('appid', 0)
+        appid = args.get('appid', None)
+        if appid is None:
+            return None
+
         redirect_url = args.get('redirectURL', None)
 
         conn = request.current_conn
@@ -127,10 +137,10 @@ class LoginView(MethodView):
             conn.rollback()
             raise e
 
-        return make_response(jsonify{'code': 0, 'msg': 'succeed', 'data': {'token': app_token}}, 200)
+        return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data': {'token': app_token}}), 200)
 
 
-sso_api.add_url_rule('/login', view_func=LoginView.as_view('TokenAPI'))
+sso_api.add_url_rule('/login', view_func=LoginView.as_view('SSOAPI'))
 
 @sso_api.route('/', methods=['GET'])
 def hello_sso():

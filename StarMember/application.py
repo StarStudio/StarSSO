@@ -7,7 +7,6 @@ import os.path
 import logging
 import uuid
 import json
-import ipdb
 
 import uuid
 import json
@@ -19,10 +18,14 @@ from functools import wraps
 from base64 import b64encode, b64decode
 
 from .info_api import info_api
+from .sso import sso_api
 from .utils import password_hash
+from datetime import datetime
+
+
+ADMIN_VERBS = frozenset(['auth', 'r_info_self', 'w_info_self', 'r_info', 'w_info', 'manage_user'])
 
 app = Flask(__name__)
-
 
 # Modules
 mysql = MySQL()
@@ -40,7 +43,7 @@ else:
 
 # Blueprints
 app.register_blueprint(info_api)
-
+app.register_blueprint(sso_api)
 
 def make_log_time_wrapper(_function): 
     @wraps(_function)
@@ -105,18 +108,17 @@ def load_digest_salt():
 
     if salt_io is None:
         salt_io = open(salt_path, 'wt')
-        salt = os.urandom(16)
-        salt_text = b64encode(salt_random)
+        salt = os.urandom(15)
+        salt_text = b64encode(salt).decode('ascii')
         salt_io.write(salt_text)
         current_app.reset_admin_account = True
     else:
         salt_io = open(salt_path, 'rt')
         salt_text = salt_io.read()
-        salt = b64decode(salt_text)
     salt_io.close()
     os.chmod(salt_path, current_app.config.get('SALT_FILE_MODE', 0o600))
 
-    return salt
+    return salt_text
         
 
 def generate_logger():
@@ -149,9 +151,11 @@ def generate_logger():
 
 
 def init_admin_account():
-    if current_app.reset_admin_account is True:
-        print('Administrator account will be reset due to the change of password salt.')
-        current_app.access_logger.info('Administrator account will be reset due to the change of password salt.')
+    if current_app.reset_admin_account is False:
+        return
+
+    print('Administrator account will be reset due to the change of password salt.')
+    current_app.access_logger.info('Administrator account will be reset due to the change of password salt.')
     default_secret = password_hash('starstudio')
 
     conn = current_app.mysql.connect()
@@ -160,10 +164,9 @@ def init_admin_account():
     try:
         c.execute('delete from auth where username=\'Admin\'')
         c.execute('delete from user where id=0')
-        affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (0, \'Administrator\', \'Unknown\', \'\', \'auth r_info_self w_info_self r_info w_info manage_user\')')
+        affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (0, \'Administrator\', \'Unknown\', \'\', \'\', \'\', \'auth r_info_self w_info_self r_info w_info manage_user\')')
         uid = c.lastrowid
-        c.execute('insert into auth(uid, username, secret) values (%s, \'Admin\', %s)', (uid, ))
-
+        c.execute('insert into auth(uid, username, secret) values (%s, \'Admin\', %s)', (uid, default_secret))
     except Exception as e:
         conn.rollback()
         raise e
@@ -172,6 +175,28 @@ def init_admin_account():
         conn.commit()
 
 
+def reset_admin_application():
+    print('Reset administration application.')
+    web_redirect_prefix = current_app.config.get('SSO_WEB_REDIRECT_PREFIX', None)
+    if web_redirect_prefix is None:
+        raise RuntimeError('SSO_WEB_REDIRECT_PREFIX not configured.')
+
+    current_app.log_access('Reset administration application')
+    conn = current_app.mysql.connect()
+    conn.begin()
+    c = conn.cursor()
+    try:
+        c.execute('delete from application where id=0')
+        c.execute('insert into application(id, name, desp, redirect_prefix) values(0, \'SSO Manage\', \'Web Console to manage users and applications\', %s) ', (web_redirect_prefix,))
+        c.execute('delete from app_bind where appid=0 and uid=0')
+        c.execute('insert into app_bind(uid, appid, access_verbs) values (0, 0, %s)', (' '.join(ADMIN_VERBS),))
+    except Exception as e:
+        conn.rollback()
+        raise e
+
+    finally:
+        conn.commit()
+
  
 @app.before_first_request
 def app_init():
@@ -179,3 +204,4 @@ def app_init():
     current_app.digest_salt = load_digest_salt()
     generate_logger()
     init_admin_account()
+    reset_admin_application()

@@ -1,12 +1,16 @@
-HOST = '0.0.0.0'
-PORT = '80'
+#
+#   Configure SSO API Server
+#
 
+# Logging
 ACCESS_LOG = 'access.log'
 ERROR_LOG = 'error.log'
 DEBUG_LOG = 'debug.log'
 
 DEBUG = False
 
+
+# Secret
 SECRET_KEY_FILE = 'jwt.pri'
 SECRET_KEY_FILE_MODE = 0o600
 PUBLIC_KEY_FILE = 'jwt.pub'
@@ -15,6 +19,10 @@ PUBLIC_KEY_MODE = 0o666
 SALT_FILE = 'starstudio.salt'
 SALT_FILE_MODE = 0o600
 
+AUTH_TOKEN_EXPIRE_DEFAULT = 86400
+APP_TOKEN_EXPIRE_DEFAULT = 86400
+
+# Database
 MYSQL_DATABASE_HOST = 'localhost'
 MYSQL_DATABASE_PORT = 3306
 MYSQL_DATABASE_USER = 'root'
@@ -22,9 +30,12 @@ MYSQL_DATABASE_PASSWORD = None
 MYSQL_DATABASE_DB = 'starstudio'
 MYSQL_DATABASE_CHARSET = 'utf8'
 
-ACCESS_LOG = 'access.api.log'
-ERROR_LOG = 'error.api.log'
+# Web console
+SSO_WEB_REDIRECT_PREFIX = 'http://127.0.0.1:5000/'
 
+#
+#   LAN Device discover service.
+#
 LAN_DEV_REDIS_HOST = ''
 LAN_DEV_REDIS_PORT = ''
 LAN_DEV_REDIS_PROBER_IDENT_PREFIX = 'LANDEV_DEFAULT'
