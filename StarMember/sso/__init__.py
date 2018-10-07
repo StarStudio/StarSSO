@@ -1,1 +1,1 @@
-from .login import sso_api
+from .sso import sso_api

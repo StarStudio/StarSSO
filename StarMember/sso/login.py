@@ -7,13 +7,9 @@ from flask import Blueprint, current_app, make_response, request, abort, jsonify
 from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker
 from StarMember.utils import password_hash
-from .utils import new_encoded_token, decode_token
+from StarMember.utils import new_encoded_token, decode_token
 from base64 import b64decode
 from datetime import datetime, timedelta
-
-
-
-sso_api = Blueprint('Single Sign-on', __name__, url_prefix = '/sso')
 
 
 class LoginView(MethodView):
@@ -93,7 +89,7 @@ class LoginView(MethodView):
 
 
             if new_auth_token:
-                resp.set_cookie('token', value = new_auth_token, domain = request.environ['SERVER_NAME'], expires = new_auth_token_expire.timestamp(), path = '/sso/login')
+                resp.set_cookie('token', value = new_auth_token, domain = request.environ['SERVER_NAME'], expires = new_auth_token_expire.timestamp(), path = '/sso')
  
         except Exception as e:
             expection_id = uuid.uuid4()
@@ -153,11 +149,3 @@ class LoginView(MethodView):
 
         return redirect(full_redir_url, 302)
         
-
-
-sso_api.add_url_rule('/login', view_func=LoginView.as_view('SSOAPI'))
-
-@sso_api.route('/', methods=['GET'])
-def hello_sso():
-    return "Starstudio SSO."
-
