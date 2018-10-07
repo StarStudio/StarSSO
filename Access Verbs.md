@@ -1,13 +1,19 @@
 ## Access Verbs
 
-| Verb        | desc                   |
-| ----------- | ---------------------- |
-| auth        | 认证                   |
-| r_info_self | 能读取自己的用户信息   |
-| w_info_self | 能修改自己的用户信息   |
-| r_info      | 能读取所有用户的信息   |
-| w_info      | 能修改所有用户的信息   |
-| manage_user | 能管理用户，包括増删改 |
+| Verb           | desc                           |
+| -------------- | ------------------------------ |
+| auth           | 认证                           |
+| read_self      | 允许读取自己的用户信息         |
+| read_internal  | 允许读取小组成员的用户信息     |
+| read_other     | 允许读取其他小组成员的用户信息 |
+| write_self     | 允许修改自己的用户信息         |
+| write_internal | 允许增删小组成员或修改信息     |
+| write_other    | 允许增删其他小组成员或修改信息 |
+| read_group     | 允许读取小组信息               |
+| write_group    | 允许修改小组信息               |
+| alter_group    | 允许增删小组                   |
+
+
 
 
 
