@@ -28,7 +28,7 @@ class LogoutView(MethodView):
             if resp is None:
                 resp = make_response('You are not logined.', 200)
         else:
-            valid, token_type, username, _, _ = decode_token(token)
+            valid, token_type, username, _, _, _ = decode_token(token)
             if resp is None:
                 if not valid:
                         resp = make_response('Invalid login state.', 200)

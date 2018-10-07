@@ -27,7 +27,7 @@ def password_hash(_password):
 
 
 
-def new_encoded_token(_user, _application_verbs, _user_verb, _token_type = 'auth', _not_before = None, _expire = None):
+def new_encoded_token(_user, _user_id, _application_verbs, _user_verb, _token_type = 'auth', _not_before = None, _expire = None):
     '''
         Create an new Json Web Token with minimal access verbs and user infomation.
 
@@ -54,6 +54,7 @@ def new_encoded_token(_user, _application_verbs, _user_verb, _token_type = 'auth
         'iat': int(datetime.now().timestamp())
         , 'jti': str(uuid.uuid4()).replace('-', '')
         , 'username': _user
+        , 'user_id' : _user_id
         , 'verbs': list(_application_verbs)
         , 'usage' : _token_type
     }
@@ -84,24 +85,25 @@ def decode_token(_encoded_token):
             _encoded_token      Encoded Json Web Token.
 
         :return:
-            (is_valid, token_type, username, expire_timestamp, tuple of avaliable verbs)
+            (is_valid, token_type, username, user_id, expire_timestamp, tuple of avaliable verbs)
     '''
     key = current_app.jwt_key
     try:
         token = JWT(key = key, jwt = _encoded_token)
     except InvalidJWSSignature or JWTExpired or ValueError as e:
-        return False, None, None, None, None
+        return False, None, None, None, None, None
 
     claims = json.loads(token.claims)
     username = claims.get('username', None)
     verbs = claims.get('verbs', None)
     expire = claims.get('exp', None)
     token_type = claims.get('usage', None)
+    user_id = claims.get('user_id', None)
 
     if username is None or verbs is None or token_type is None:
-        return False, None, None, expire, None
+        return False, None, None, None, None, None
 
     try:
-        return True, token_type, username, expire, set(verbs)
+        return True, token_type, username, user_id, expire, set(verbs)
     except TypeError as e:
-        return False, token_type, None, None, None
+        return False, None, None, None, None, None

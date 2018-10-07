@@ -58,7 +58,7 @@ class LoginView(MethodView):
     def cookie_token_auth(self):
         token = request.cookies.get('token', None)
         if token is not None:
-            valid, token_type, username, expire, verbs = decode_token(token)
+            valid, token_type, username, user_id, expire, verbs = decode_token(token)
             if valid and token_type == 'auth':
                 request.auth_user = username
                 request.current_user_verbs = verbs
