@@ -23,7 +23,21 @@ from .utils import password_hash
 from datetime import datetime
 
 
-ADMIN_VERBS = frozenset(['auth', 'r_info_self', 'w_info_self', 'r_info', 'w_info', 'manage_user'])
+ADMIN_VERBS = frozenset([
+    'auth', 'read_self', 'read_internal', 'read_other'
+    , 'write_self', 'write_internal', 'write_other', 'read_group'
+    , 'write_group', 'alter_group'
+])
+
+USER_INITIAL_ACCESS_DEFAULT = frozenset([
+    'auth', 'read_self', 'read_internal', 'read_other', 'write_self'
+])
+
+APP_INITIAL_ACCESS_DEFAULT = frozenset([
+    'auth', 'read_self'
+])
+ 
+  
 
 app = Flask(__name__)
 
@@ -164,7 +178,7 @@ def init_admin_account():
     try:
         c.execute('delete from auth where username=\'Admin\'')
         c.execute('delete from user where id=0')
-        affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (0, \'Administrator\', \'Unknown\', \'\', \'\', \'\', \'auth r_info_self w_info_self r_info w_info manage_user\')')
+        affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (0, \'Administrator\', \'Unknown\', \'\', \'\', \'\', %s)', (' '.join(ADMIN_VERBS)))
         uid = c.lastrowid
         c.execute('insert into auth(uid, username, secret) values (%s, \'Admin\', %s)', (uid, default_secret))
     except Exception as e:
@@ -197,7 +211,7 @@ def reset_admin_application():
     finally:
         conn.commit()
 
- 
+
 @app.before_first_request
 def app_init():
     current_app.jwt_key = load_jwt_key()
@@ -205,3 +219,11 @@ def app_init():
     generate_logger()
     init_admin_account()
     reset_admin_application()
+
+    if 'USER_INITIAL_ACCESS' in current_app.config:
+        current_app.log_error('USER_INITIAL_ACCESS not configured. Set to (%s)' % ','.join(USER_INITIAL_ACCESS_DEFAULT))
+        current_app.config['USER_INITIAL_ACCESS'] = USER_INITIAL_ACCESS_DEFAULT
+
+    if 'APP_INITIAL_ACCESS' in current_app.config:
+        current_app.log_error('APP_INITIAL_ACCESS not configured. Set to (%s)' % ','.join(APP_INITIAL_ACCESS))
+        current_app.config['APP_INITIAL_ACCESS'] = APP_INITIAL_ACCESS

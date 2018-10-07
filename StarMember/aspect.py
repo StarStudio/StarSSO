@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Response
+from flask import Response, request, current_app
 import logging
 import uuid
 
@@ -99,15 +99,3 @@ def post_data_key_checker(*keys):
             return False, "Too many arguments."
         return True, ""
     return key_checker
-            
-def starstuio_secret_header(_view_function):
-    @wraps(_view_function)
-    def secret_checker(*arg, **kwarg):
-        secret = request.headers.get('StarStudio-Application')
-        if secret is None or secret != app.config['STAR_SECRET']:
-            app.log_access('   Access denied. Invailed StarStudio-Application Header: %s' % secret)
-            abort(400)
-        return _view_function(*arg, **kwarg)
-    return secret_checker
-
-

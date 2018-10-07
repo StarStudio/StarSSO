@@ -30,6 +30,15 @@ MYSQL_DATABASE_PASSWORD = None
 MYSQL_DATABASE_DB = 'starstudio'
 MYSQL_DATABASE_CHARSET = 'utf8'
 
+# Access contaol                            # 权限控制
+USER_INITIAL_ACCESS = frozenset([
+    'auth', 'read_self', 'read_internal', 'read_other', 'write_self', 'read_group'
+])
+
+APP_INITIAL_ACCESS = frozenset([
+    'auth', 'read_self'
+])
+
 # Web console
 SSO_WEB_REDIRECT_PREFIX = 'http://127.0.0.1:5000/'  # 内部 SSO 管理面板登录的Redirect前缀
 
