@@ -56,7 +56,8 @@ class SignAPIView(MethodView):
             abort(400)
         method, auth_content = splited
         if method != 'Bearer':
-            return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
+            return False
+            # return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
 
         request.auth_token = auth_content
         return True

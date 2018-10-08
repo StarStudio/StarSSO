@@ -22,7 +22,6 @@ from .sso import sso_api
 from .utils import password_hash
 from datetime import datetime
 
-import ipdb
 
 
 ADMIN_VERBS = frozenset([
@@ -179,11 +178,14 @@ def init_admin_account():
     c = conn.cursor()
     try:
         c.execute('delete from auth where username=\'Admin\'')
+        c.execute('delete from group_members where uid=1')
         c.execute('delete from user where id=1')
         affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (1, \'Administrator\', \'Unknown\', \'\', \'\', \'\', %s)', (' '.join(ADMIN_VERBS)))
         uid = c.lastrowid
         c.execute('insert into auth(uid, username, secret) values (%s, \'Admin\', %s)', (uid, default_secret))
-        c.execute('insert into work_group(id, name, desp) values(1, \'Admin\', \'Administrator Group\')')
+        affected = c.execute('select count(*) from work_group where id=1')
+        if affected < 1:
+            c.execute('insert into work_group(id, name, desp) values(1, \'Admin\', \'Administrator Group\')')
         c.execute('insert into group_members (uid, gid) values (1, 1)')
     except Exception as e:
         conn.rollback()
