@@ -1,6 +1,6 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.views import SignAPIView, with_access_verbs, resource_access_deined
+from StarMember.views import SignAPIView, resource_access_denied
 import uuid
 
 
@@ -17,20 +17,21 @@ def remove_user(**kwargs):
 
             affected = c.execute('select gid from group_members where uid=%s', (kwargs['uid'],))
             if affected < 1:
-                return jsonify({'code': 1422, 'msg': 'Pending user', 'data': ''})
+                return jsonify({'code': 1422, 'msg': 'User not exists', 'data': ''})
             gid = int(c.fetchall()[0][0])
 
             access_grant = False
             if gid != my_gid: # Not in same group
                 if 'write_other' in request.app_verbs:
                     access_grant = True
-            elif if 'write_internal' in request.app_verbs:
+            elif 'write_internal' in request.app_verbs:
                 access_grant = True
 
             if not access_grant:
                 return resource_access_deined()
 
         #if 'uid' in kwargs:
+            affected = c.execute('delete from group_members where uid=(%s)', (kwargs['uid'],))
             affected = c.execute('delete from user where id=(%s)', (kwargs['uid'],))
         #else:
         #    affected = c.execute('delete from user where name=(%s)', (kwargs['name'],))
@@ -38,7 +39,7 @@ def remove_user(**kwargs):
         if affected < 1:
             return jsonify({
                 'code'  :   1422
-                , 'msg' :   'user not exists'
+                , 'msg' :   'User not exists'
                 , 'data':   ''
             })
         conn.commit()
@@ -57,13 +58,13 @@ def remove_user(**kwargs):
     
     
 class MemberAccessView(SignAPIView):
-    method = ['GET', 'DELETE', 'POST']
+    method = ['GET', 'DELETE', 'PUT']
 
     def get(self, uid):
         if request.auth_user_id != uid:
             if 'read_internal' not in request.app_verbs\
             and 'read_other' not in request.app_verbs:
-            return resource_access_deined()
+                return resource_access_deined()
         elif 'read_self' not in request.app_verbs:
             return resource_access_deined()
 
@@ -88,7 +89,7 @@ class MemberAccessView(SignAPIView):
                 if int(result[8]) != int(c.fetchall()[0][0]): # Not in same group
                     if 'read_other' in request.app_verbs:
                         access_grant = True
-                elif if 'read_internal' in request.app_verbs:
+                elif 'read_internal' in request.app_verbs:
                     access_grant = True
 
                 if not access_grant:
@@ -119,7 +120,7 @@ class MemberAccessView(SignAPIView):
         })
 
 
-    def post(self, uid):
+    def put(self, uid):
         if request.auth_user_id != uid:
             if 'write_other' not in request.app_verbs\
             and 'write_internal' not in request.app_verbs:
@@ -157,10 +158,10 @@ class MemberAccessView(SignAPIView):
                     return jsonify({'code': 1422, 'msg': 'Pending user.', 'data': ''})
 
                 access_grant = False
-                if int(result[8]) != int(c.fetchall()[0][0]): # Not in same group
+                if int(info[7]) != int(c.fetchall()[0][0]): # Not in same group
                     if 'write_other' in request.app_verbs:
                         access_grant = True
-                elif if 'write_internal' in request.app_verbs:
+                elif 'write_internal' in request.app_verbs:
                     access_grant = True
 
                 if not access_grant:
@@ -243,7 +244,7 @@ class MemberAPIView(SignAPIView):
             elif int(item[8]) == my_gid:
                 if 'read_internal' not in request.app_verbs:
                     continue
-            elif 'read_other' not in read_other.app_verbs:
+            elif 'read_other' not in request.app_verbs:
                 continue
             filtered.append(item)
             
@@ -306,7 +307,7 @@ class MemberAPIView(SignAPIView):
             
             result = c.fetchall()
             if result:
-                c.execute('insert into user(name, sex, tel, mail) values(%s, %s, %s, %s)', (request.post_data['name'], request.post_data['sex'], request.post_data['tel'], request.post_data['mail']))
+                c.execute('insert into user(name, sex, tel, mail, access_verbs) values(%s, %s, %s, %s, %s)', (request.post_data['name'], request.post_data['sex'], request.post_data['tel'], request.post_data['mail'], ' '.join(current_app.config['USER_INITIAL_ACCESS'])))
                 uid = c.lastrowid
                 c.execute('insert into group_members(gid, uid) values (%s, %s)', (request.post_data['gid'], uid))
             else:

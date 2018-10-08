@@ -38,13 +38,14 @@ class LoginView(MethodView):
         conn.begin()
         c = conn.cursor()
         try:
-            affected = c.execute('select auth.secret, user.access_verbs from auth inner join user on auth.uid=user.id where auth.username=%s', (request.auth_user,))
-            secret, verbs = c.fetchall()[0]
+            affected = c.execute('select auth.secret, user.access_verbs, user.id from auth inner join user on auth.uid=user.id where auth.username=%s', (request.auth_user,))
+            secret, verbs, uid = c.fetchall()[0]
             verbs = verbs.split(' ')
             require_secret = password_hash(request.auth_password)
             if require_secret != secret:
                 return make_response(jsonify({'code': 1201, 'msg': 'Invali User or Password', 'data':'' }), 403)
             request.current_user_verbs = set(verbs)
+            request.auth_user_id = uid
         except Exception as e:
             conn.rollback()
             raise e
@@ -62,6 +63,7 @@ class LoginView(MethodView):
             if valid and token_type == 'auth':
                 request.auth_user = username
                 request.current_user_verbs = verbs
+                request.auth_user_id = user_id
                 return True
 
         return False
@@ -83,7 +85,7 @@ class LoginView(MethodView):
                     return resp
                 # Generate 
                 new_auth_token_expire = datetime.now() + timedelta(seconds=auth_expire)
-                new_auth_token = new_encoded_token(request.auth_user, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
+                new_auth_token = new_encoded_token(request.auth_user, 0, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
                 
             resp = super().dispatch_request()
 
@@ -133,7 +135,7 @@ class LoginView(MethodView):
 
             application_verbs = verbs.split(' ')
             expire = datetime.now() + timedelta(seconds=app_expire)
-            app_token = new_encoded_token(request.auth_user, application_verbs, request.current_user_verbs, _expire = expire, _token_type = 'application')
+            app_token = new_encoded_token(request.auth_user, request.auth_user_id, application_verbs, request.current_user_verbs, _expire = expire, _token_type = 'application')
 
         except Exception as e:
             conn.rollback()

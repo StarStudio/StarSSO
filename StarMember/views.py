@@ -1,14 +1,13 @@
 import uuid
 import json
-import uuid
-import json
 
 from datetime import datetime
-from flask import current_app, jsonify, request
-from flask.views import MethodView, make_response
+from flask import current_app, jsonify, request, make_response
+from flask.views import MethodView
 from traceback import print_exc, format_exc
 from .utils import decode_token
 from functools import wraps
+
 
 def resource_access_denied():
     return make_response(jsonify({'code': 1201, 'msg': 'You have no access to this resources', 'data': ''}), 403)
@@ -51,7 +50,7 @@ class SignAPIView(MethodView):
         auth_header = request.headers.get('Authorization', None)
         if None is auth_header:
             return False
-        splited = auth_header(' ')
+        splited = auth_header.split(' ')
 
         if len(splited) != 2:
             abort(400)
@@ -84,8 +83,8 @@ class SignAPIView(MethodView):
             if not self.try_http_bearer_auth() and not self.try_cookie_token_auth():
                 return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 403)
 
-            valid, token_type, username, user_id, expire, verbs = decode_token(result.token)
-            if not valid or not token_type != 'application':
+            valid, token_type, username, user_id, expire, verbs = decode_token(request.auth_token)
+            if not valid or token_type != 'application':
                 return make_response(jsonify({'code': 1201, 'msg': 'Authorization failure', 'data': ''}), 403)
 
             request.auth_user = username

@@ -22,6 +22,8 @@ from .sso import sso_api
 from .utils import password_hash
 from datetime import datetime
 
+import ipdb
+
 
 ADMIN_VERBS = frozenset([
     'auth', 'read_self', 'read_internal', 'read_other'
@@ -177,10 +179,12 @@ def init_admin_account():
     c = conn.cursor()
     try:
         c.execute('delete from auth where username=\'Admin\'')
-        c.execute('delete from user where id=0')
-        affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (0, \'Administrator\', \'Unknown\', \'\', \'\', \'\', %s)', (' '.join(ADMIN_VERBS)))
+        c.execute('delete from user where id=1')
+        affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (1, \'Administrator\', \'Unknown\', \'\', \'\', \'\', %s)', (' '.join(ADMIN_VERBS)))
         uid = c.lastrowid
         c.execute('insert into auth(uid, username, secret) values (%s, \'Admin\', %s)', (uid, default_secret))
+        c.execute('insert into work_group(id, name, desp) values(1, \'Admin\', \'Administrator Group\')')
+        c.execute('insert into group_members (uid, gid) values (1, 1)')
     except Exception as e:
         conn.rollback()
         raise e
@@ -200,10 +204,10 @@ def reset_admin_application():
     conn.begin()
     c = conn.cursor()
     try:
-        c.execute('delete from application where id=0')
-        c.execute('insert into application(id, name, desp, redirect_prefix) values(0, \'SSO Manage\', \'Web Console to manage users and applications\', %s) ', (web_redirect_prefix,))
-        c.execute('delete from app_bind where appid=0 and uid=0')
-        c.execute('insert into app_bind(uid, appid, access_verbs) values (0, 0, %s)', (' '.join(ADMIN_VERBS),))
+        c.execute('delete from application where id=1')
+        c.execute('insert into application(id, name, desp, redirect_prefix) values(1, \'SSO Manage\', \'Web Console to manage users and applications\', %s) ', (web_redirect_prefix,))
+        c.execute('delete from app_bind where appid=1 and uid=1')
+        c.execute('insert into app_bind(uid, appid, access_verbs) values (1, 1, %s)', (' '.join(ADMIN_VERBS),))
     except Exception as e:
         conn.rollback()
         raise e
@@ -220,10 +224,12 @@ def app_init():
     init_admin_account()
     reset_admin_application()
 
-    if 'USER_INITIAL_ACCESS' in current_app.config:
+    user_initial_access = current_app.config.get('USER_INITIAL_ACCESS', None)
+    if user_initial_access is None:
         current_app.log_error('USER_INITIAL_ACCESS not configured. Set to (%s)' % ','.join(USER_INITIAL_ACCESS_DEFAULT))
         current_app.config['USER_INITIAL_ACCESS'] = USER_INITIAL_ACCESS_DEFAULT
 
-    if 'APP_INITIAL_ACCESS' in current_app.config:
+    app_initial_access = current_app.config['APP_INITIAL_ACCESS']
+    if app_initial_access is None:
         current_app.log_error('APP_INITIAL_ACCESS not configured. Set to (%s)' % ','.join(APP_INITIAL_ACCESS))
         current_app.config['APP_INITIAL_ACCESS'] = APP_INITIAL_ACCESS
