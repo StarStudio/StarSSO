@@ -23,7 +23,7 @@ DROP TABLE IF EXISTS `app_bind`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `app_bind` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `uid` int(11) NOT NULL,
   `appid` int(11) NOT NULL,
   `access_verbs` text COLLATE utf8mb4_unicode_ci NOT NULL,
@@ -49,7 +49,7 @@ DROP TABLE IF EXISTS `application`;
 /*!40101 SET @saved_cs_client     = @@character_set_client */;
 /*!40101 SET character_set_client = utf8 */;
 CREATE TABLE `application` (
-  `id` int(11) NOT NULL,
+  `id` int(11) NOT NULL AUTO_INCREMENT,
   `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `desp` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `redirect_prefix` text COLLATE utf8mb4_unicode_ci NOT NULL,

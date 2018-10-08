@@ -7,13 +7,9 @@ from flask import Blueprint, current_app, make_response, request, abort, jsonify
 from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker
 from StarMember.utils import password_hash
-from .utils import new_encoded_token, decode_token
+from StarMember.utils import new_encoded_token, decode_token
 from base64 import b64decode
 from datetime import datetime, timedelta
-
-
-
-sso_api = Blueprint('Single Sign-on', __name__, url_prefix = '/sso')
 
 
 class LoginView(MethodView):
@@ -42,13 +38,14 @@ class LoginView(MethodView):
         conn.begin()
         c = conn.cursor()
         try:
-            affected = c.execute('select auth.secret, user.access_verbs from auth inner join user on auth.uid=user.id where auth.username=%s', (request.auth_user,))
-            secret, verbs = c.fetchall()[0]
+            affected = c.execute('select auth.secret, user.access_verbs, user.id from auth inner join user on auth.uid=user.id where auth.username=%s', (request.auth_user,))
+            secret, verbs, uid = c.fetchall()[0]
             verbs = verbs.split(' ')
             require_secret = password_hash(request.auth_password)
             if require_secret != secret:
                 return make_response(jsonify({'code': 1201, 'msg': 'Invali User or Password', 'data':'' }), 403)
             request.current_user_verbs = set(verbs)
+            request.auth_user_id = uid
         except Exception as e:
             conn.rollback()
             raise e
@@ -62,10 +59,11 @@ class LoginView(MethodView):
     def cookie_token_auth(self):
         token = request.cookies.get('token', None)
         if token is not None:
-            valid, token_type, username, expire, verbs = decode_token(token)
+            valid, token_type, username, user_id, expire, verbs = decode_token(token)
             if valid and token_type == 'auth':
                 request.auth_user = username
                 request.current_user_verbs = verbs
+                request.auth_user_id = user_id
                 return True
 
         return False
@@ -87,13 +85,13 @@ class LoginView(MethodView):
                     return resp
                 # Generate 
                 new_auth_token_expire = datetime.now() + timedelta(seconds=auth_expire)
-                new_auth_token = new_encoded_token(request.auth_user, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
+                new_auth_token = new_encoded_token(request.auth_user, 0, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
                 
             resp = super().dispatch_request()
 
 
             if new_auth_token:
-                resp.set_cookie('token', value = new_auth_token, domain = request.environ['SERVER_NAME'], expires = new_auth_token_expire.timestamp(), path = '/sso/login')
+                resp.set_cookie('token', value = new_auth_token, domain = request.environ['SERVER_NAME'], expires = new_auth_token_expire.timestamp(), path = '/sso')
  
         except Exception as e:
             expection_id = uuid.uuid4()
@@ -137,7 +135,7 @@ class LoginView(MethodView):
 
             application_verbs = verbs.split(' ')
             expire = datetime.now() + timedelta(seconds=app_expire)
-            app_token = new_encoded_token(request.auth_user, application_verbs, request.current_user_verbs, _expire = expire, _token_type = 'application')
+            app_token = new_encoded_token(request.auth_user, request.auth_user_id, application_verbs, request.current_user_verbs, _expire = expire, _token_type = 'application')
 
         except Exception as e:
             conn.rollback()
@@ -153,11 +151,3 @@ class LoginView(MethodView):
 
         return redirect(full_redir_url, 302)
         
-
-
-sso_api.add_url_rule('/login', view_func=LoginView.as_view('SSOAPI'))
-
-@sso_api.route('/', methods=['GET'])
-def hello_sso():
-    return "Starstudio SSO."
-
