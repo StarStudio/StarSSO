@@ -39,6 +39,8 @@ class LoginView(MethodView):
         c = conn.cursor()
         try:
             affected = c.execute('select auth.secret, user.access_verbs, user.id from auth inner join user on auth.uid=user.id where auth.username=%s', (request.auth_user,))
+            if affected < 1:
+                return make_response(jsonify({'code': 1201, 'msg': 'Invali User or Password', 'data':'' }), 403)
             secret, verbs, uid = c.fetchall()[0]
             verbs = verbs.split(' ')
             require_secret = password_hash(request.auth_password)
@@ -85,7 +87,7 @@ class LoginView(MethodView):
                     return resp
                 # Generate 
                 new_auth_token_expire = datetime.now() + timedelta(seconds=auth_expire)
-                new_auth_token = new_encoded_token(request.auth_user, 0, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
+                new_auth_token = new_encoded_token(request.auth_user, request.auth_user_id, request.current_user_verbs, request.current_user_verbs, _expire = new_auth_token_expire, _token_type = 'auth')
                 
             resp = super().dispatch_request()
 

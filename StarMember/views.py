@@ -43,34 +43,58 @@ def resource_access_denied():
 #        return decorated
 #    return decorate
 
+def try_http_bearer_auth():
+    auth_header = request.headers.get('Authorization', None)
+    if None is auth_header:
+        return False
+    splited = auth_header.split(' ')
+
+    if len(splited) != 2:
+        abort(400)
+    method, auth_content = splited
+    if method != 'Bearer':
+        return False
+        # return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
+
+    request.auth_token = auth_content
+    return True
+    
+
+def try_cookie_token_auth():
+    token = request.cookies.get('token', None)
+    if token is None:
+        return False
+    request.auth_token = token
+    return True
+
+
+def with_application_token(deny_unauthorization = True):
+    def decorate(_function):
+        @wraps(_function)
+        def decorated(*args, **kwargs):
+            auth_err_response = None
+            if not try_http_bearer_auth() and not try_cookie_token_auth():
+                auth_err_response = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 403)
+                if deny_unauthorization:
+                    return auth_err_response
+            else: 
+                valid, token_type, username, user_id, expire, verbs = decode_token(request.auth_token)
+                if not valid or token_type != 'application':
+                    auth_err_response = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 403)
+                    if deny_unauthorization:
+                        return auth_err_response
+
+                request.auth_user = username
+                request.auth_user_id = user_id
+                request.app_verbs = verbs
+
+            request.auth_err_response = auth_err_response
+            return _function(*args, **kwargs)
+        return decorated
+    return decorate
+
 
 class SignAPIView(MethodView):
-
-    def try_http_bearer_auth(self):
-        auth_header = request.headers.get('Authorization', None)
-        if None is auth_header:
-            return False
-        splited = auth_header.split(' ')
-
-        if len(splited) != 2:
-            abort(400)
-        method, auth_content = splited
-        if method != 'Bearer':
-            return False
-            # return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
-
-        request.auth_token = auth_content
-        return True
-        
-
-    def try_cookie_token_auth(self):
-        token = request.cookies.get('token', None)
-        if token is None:
-            return False
-
-        request.auth_token = token
-        return True
-
 
     def dispatch_request(self, *arg, **kwarg):
         try:
@@ -80,17 +104,6 @@ class SignAPIView(MethodView):
             log_info['time'] = str(datetime.now())
             if len(request.form) > 0:
                 log_info['form'] = request.form.copy()
-
-            if not self.try_http_bearer_auth() and not self.try_cookie_token_auth():
-                return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 403)
-
-            valid, token_type, username, user_id, expire, verbs = decode_token(request.auth_token)
-            if not valid or token_type != 'application':
-                return make_response(jsonify({'code': 1201, 'msg': 'Authorization failure', 'data': ''}), 403)
-
-            request.auth_user = username
-            request.auth_user_id = user_id
-            request.app_verbs = verbs
 
             result =  super().dispatch_request(*arg, **kwarg)
             log_info['result'] = json.loads(result.data.decode())
