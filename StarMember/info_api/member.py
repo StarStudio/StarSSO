@@ -329,6 +329,13 @@ class MemberAPIView(SignAPIView):
                     , 'msg': 'group %d not exists' % request.post_data['gid']
                     , 'data' :''
                 })
+            if request.post_data['gid'] == 1:
+                return jsonify({
+                    'code': 1423
+                    , 'msg': 'Cannot join this group.'
+                    , 'data' :''
+                })
+
             affected = c.execute('select count(username) from auth where username=%s', (post_data['username'],))
             if affected < 1:
                 return jsonify({
