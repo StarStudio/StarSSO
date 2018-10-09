@@ -4,7 +4,6 @@ from StarMember.views import SignAPIView, resource_access_denied, with_applicati
 from StarMember.utils import password_hash
 import uuid
 
-import ipdb
 
 def remove_user(**kwargs):
     conn = current_app.mysql.connect()
