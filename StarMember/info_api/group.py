@@ -1,12 +1,16 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.views import SignAPIView
+from StarMember.views import SignAPIView, resource_access_denied, with_application_token
 import uuid
 
 class GroupAPIView(SignAPIView):
     methods = ['POST', 'DELETE', 'GET']
 
+    @with_application_token(deny_unauthorization = True)
     def post(self):
+        if 'alter_group' not in request.app_verbs:
+            return resource_access_denied()
+            
         post_data = request.form.copy()
         type_checker = post_data_type_checker(name = str, desp = str)
         key_checker = post_data_key_checker('name', 'desp')
@@ -52,7 +56,11 @@ class GroupAPIView(SignAPIView):
         })
 
 
+    @with_application_token(deny_unauthorization = True)
     def delete(self):
+        if 'alter_group' not in request.app_verbs:
+            return resource_access_denied()
+
         post_data = request.form.copy()
         key_checker = post_data_key_checker('gid')
         type_checker = post_data_type_checker(gid = str)
@@ -110,7 +118,15 @@ class GroupAPIView(SignAPIView):
             , 'data' : ''
         })
 
+    
+    @with_application_token(deny_unauthorization = False)
     def get(self):
+        if current_app.config['ALLOW_ANONYMOUS_GROUP_INFO'] is not True and request.auth_err_response is not None:
+            return request.auth_err_response
+
+        if 'read_group' not in request.app_verbs:
+            return resource_access_denied()
+
         post_data = request.form.copy()
         key_checker = post_data_key_checker()
         ok, err_msg = key_checker(post_data)

@@ -1,6 +1,7 @@
 from flask import Blueprint
 from .group import GroupAPIView
 from .member import MemberAPIView, MemberAccessView
+#from .token import TokenAuthView
 
 info_api = Blueprint("MemberAPI", __name__, url_prefix = "/v1/star")
 
