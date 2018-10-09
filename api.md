@@ -1,12 +1,29 @@
-API说明文档
+# Starstudio SSO 接口文档 (Draft)
 
-> resp
+### 目录
 
-```
+- [API结果返回格式](#API结果返回格式)
+  - [状态码含义](#参考下列code状态码意义)
+- [认证](认证)
+  - [登录](#登录)
+  - [退出](#退出)
+- [安全性](#安全性)
+  - 传输安全性
+  - 对 Token 的校验
+  - 严防 XSS
+  - 禁止使用 API 颁发 Token
+
+---
+
+#### API 返回格式
+
+```json
 {"code":0 , "data":"succsss", "msg": ""}
 ```
 
-参考下列code状态码意义
+**data** 为返回的数据，具体内容依据调用的API所不同。**msg** 为对 **code** 的描述。**code** 为状态码。
+
+##### 参考下列code状态码意义
 
 | code |               msg                |                   含义 |
 | :--- | :------------------------------: | ---------------------: |
@@ -18,292 +35,123 @@ API说明文档
 | 1400 |           Bad request            |             请求不正确 |
 | 1422 |          Arg %s missing          |            缺少参数 %s |
 | 1423 |            视情况而定            |             参数不正确 |
-| 1503 |         database failed          |         数据库操作失败 |
 | 1504 |        Unknown Exception         |           出现未知异常 |
-| 1507 |                                  |  识别人脸结果为Unknown |
 
+---
 
+### 认证
 
+登录
 
+支持一般的登录认证和单点登录。遵守 JSON Web Token 规范。登录的所有过程都需要在HTTPS下完成。
 
-### 权限
+- 只做认证使用
 
-请求接口时需要附带 StarStudio-Application 头部，内容为一个 ApplicationKey。ApplicationKey 具体内容请咨询工作室相关人员。
+  - 请求路径：http://\<服务器名\>/sso/login
 
+  - 请求方法：GET
 
+  - 认证方式：
 
-### 人脸识别签到
+    使用 HTTP Basic Authentication，即附带 Basic Authorization 头部。
 
-- URL：http://sign.stuhome.com/v1/star/record
-- 请求方法：POST
-- 参数：
+  - 返回：
 
-| 参数   | 类型   | 说明   |
-| ---- | ---- | ---- |
-| face | file | 人脸文件 |
+    若成功登录，则会返回
 
-- 返回：
+    ```json
+    {"code":0 , "msg":"succsss", "data": ""}
+    ```
 
-  ```json
-  {"code":0 
-    , "data":{
-      "check_in" : [ // 变为 Checked in 状态的人员信息
-        	{
-             "name": "<成员名>"
-             , "uid" :"<成员 UID>"
-             , "gid" : "<所属组 GID>"
-             , "age" : "<年龄>"
-             , "sex" : "<性别>"
-             , "address" : "<联系地址>"
-             , "tel" : "<联系电话>"
-             , "mail" : "<电子邮箱>"
-         } 
-        , ...
-      ]
-        , "check_out" : [ // 变为 Checked out 状态的人员信息
-        {
-             "name": "<成员名>"
-             , "uid" :"<成员 UID>"
-             , "gid" : "<所属组 GID>"
-             , "age" : "<年龄>"
-             , "sex" : "<性别>"
-             , "address" : "<联系地址>"
-             , "tel" : "<联系电话>"
-             , "mail" : "<电子邮箱>"
-         }
-        , ...
-      ]
+    此时返回 HTTP 状态码 200
+
+    若登录失败，会返回错误信息，此时 code 字段非 0。HTTP 状态码 非200。
+
+- 获取应用 Token
+
+  读取用户信息需要 HTTP Bearer Authentication。获取的Token可以作为其他系统的 Token 使用。
+
+  - 请求路径：http://\<服务器名\>/sso/login?appid=<应用ID>
+
+  - 请求方法、认证方式与只作认证使用时相同
+
+  - 返回：
+
+    若认证成功，则在data字段返回一个JWT。
+
+    ```json
+    {"code":0 , "msg":"succsss", "data": {
+        "token": "<JWT Token>"
+    }}
+    ```
+
+    一个成功登录的返回示例
+
+    ```json
+    {
+      "code": 0, 
+      "data": {
+        "token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzkxMDE5NjQsImlhdCI6MTUzOTAxNTU2NCwianRpIjoiZjgzMjdhNDdjZmY4NDBlODgyNDRiM2ZkNTQ3NjNhYjQiLCJ1c2FnZSI6ImFwcGxpY2F0aW9uIiwidXNlcl9pZCI6MSwidXNlcm5hbWUiOiJBZG1pbiIsInZlcmJzIjpbInJlYWRfaW50ZXJuYWwiLCJyZWFkX2dyb3VwIiwicmVhZF9vdGhlciIsIndyaXRlX2ludGVybmFsIiwid3JpdGVfc2VsZiIsIndyaXRlX2dyb3VwIiwiYWx0ZXJfZ3JvdXAiLCJhdXRoIiwicmVhZF9zZWxmIiwid3JpdGVfb3RoZXIiXX0.kCvschqm1AWwUMjIdrQgzW5Ao15AEt9d4v8Mfkuges1aOkZebQzPSKZpXOjsk7ltEDxVxrO28yBZC-VZyj8-SV8C3TpLYvcFh8ml2n1UjQFHXACwOayCVblVGW9PYe-7b3BY7ECbF57JRhpelwiopV6crFHxdKuJY3fbhn6AqmM"
+      }, 
+      "msg": "succeed"
     }
-    , "msg": "success"
-  }// 成功
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
-  ```
+    ```
 
-  ​
+    失败时返回与只作认证使用时相同。
 
+- 单点登录
 
+  前几种情况中都涉及了认证，在成功认证后，服务器会利用 Set-Cookie 在用户端保存一个特殊的 Token，用于登录状态校验。
 
-### 增加组
+  - 利用 redirectURL 从 SSO 系统获取 Token
 
-- URL：http://sign.stuhome.com/v1/star/group
+    一个未有登录状态的系统可以通过以下步骤获取已登录的用户状态。
 
-- 请求方法：POST
+    - 发现未登录，将用户重定向至 
 
-- 参数：
+      ```
+      http://<服务器名>/sso/login?appid=<应用ID>&redirectURL=<认证完成后的重定向链接>
+      ```
 
-| 参数   | 类型     | 说明   |
-| ---- | ------ | ---- |
-| name | string | 小组名称 |
-| desp | string | 小组说明 |
+    - SSO 服务对登录状态进行校验，并根据结果进行跳转
 
-- 返回：
+      SSO 服务会对 redirectURL 的链接进行检查，若与注册的 URL 不符合，则会拒绝进行 Token 颁发和任何的跳转，显示一个错误信息。
 
-  ```json
-  {"code":0 , "data":{"gid": "<新小组 GID>"}, "msg": "success"}// 成功
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
-  ```
+      - 已登录
 
+        SSO 会将颁发的 Token 作为参数，将用户重定向到 redirectURL 所指定的链接。
 
-#### 
+        例如 redirectURL 指定了 http://sign.stuhome.com/redirectsso，则跳转到：
 
-#### 查询所有小组
+        ```
+        http://sign.stuhome.com/redirectsso?token=eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE1MzkxMDE5NjQsImlhdCI6MTUzOTAxNTU2NCwianRpIjoiZjgzMjdhNDdjZmY4NDBlODgyNDRiM2ZkNTQ3NjNhYjQiLCJ1c2FnZSI6ImFwcGxpY2F0aW9uIiwidXNlcl9pZCI6MSwidXNlcm5hbWUiOiJBZG1pbiIsInZlcmJzIjpbInJlYWRfaW50ZXJuYWwiLCJyZWFkX2dyb3VwIiwicmVhZF9vdGhlciIsIndyaXRlX2ludGVybmFsIiwid3JpdGVfc2VsZiIsIndyaXRlX2dyb3VwIiwiYWx0ZXJfZ3JvdXAiLCJhdXRoIiwicmVhZF9zZWxmIiwid3JpdGVfb3RoZXIiXX0.kCvschqm1AWwUMjIdrQgzW5Ao15AEt9d4v8Mfkuges1aOkZebQzPSKZpXOjsk7ltEDxVxrO28yBZC-VZyj8-SV8C3TpLYvcFh8ml2n1UjQFHXACwOayCVblVGW9PYe-7b3BY7ECbF57JRhpelwiopV6crFHxdKuJY3fbhn6AqmM
+        ```
 
-- API：http://sign.stuhome.com/v1/star/group
+      - 未登录
 
-- 请求方法：GET
+        SSO 会将用户重定向到 redirectURL 所指定的链接，不附带任何参数。
 
-- 请求参数：无
+    - 系统收到跳转，根据设定的策略提示用户进行下一步操作。
 
-- 返回：
+##### 退出
 
-  ```json
-  {
-      "code":0 
-     , "data" :[
-         {
-             "name": "<小组名称>"
-             , "gid" :"<小组 GID>"
-             , "desp" : "<小组描述>"
-           , "members" [
-           	{
-           
-         		}, ...
-           ]
-         }
-         , ...
-       ]
-     , "msg": "success"} // 成功
-
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
-  ```
-
-  ​
-
-#### 增加成员
-
-- URL：http://sign.stuhome.com/v1/star/member
-
-- 请求方法：POST
-
-- 表单参数：
-
-| 参数       | 类型     | 说明     |
-| :------- | :----- | :----- |
-| name     | string | 成员姓名   |
-| gid      | string | 组 ID   |
-| sex      | string | 性别     |
-| tel      | string | 电话号码   |
-| mail     | string | 邮箱     |
-| face_img | file   | 人脸图片数据 |
-
-- 返回：
-
-  ```json
-  {"code":0 , "data":{"uid": "<新成员 GID>"}, "msg": "success"} // 成功
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
-  ```
-
-
-
-### 删除成员
-
-- API ：http://sign.stuhome.com/v1/star/member
-
-- 请求方法：DELETE
-
-- 表单参数：
-
-| 参数   | 类型     | 说明     |
-| ---- | ------ | ------ |
-| name | string | 成员姓名   |
-| uid  | string | 成员 UID |
-
-  name 和 uid 指定其一。指定了 uid，name 会被忽略。
-
-- 返回：
-
-  ```json
-  {"code":0 , "data":'', "msg": "success"} // 成功
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
-  ```
-
-
-
-
-
-### 查询签到记录
-
-- API：http://sign.stuhome.com/v1/star/record
+- 请求路径：http://\<服务器名\>/sso/logout
 
 - 请求方法：GET
 
-- 请求参数：
-
-  参数用于过滤特定结果。
-
-| 参数         | 类型     | 说明   |
-| ---------- | ------ | ---- |
-| name       | string | 成员名称 |
-| group      | string | 小组名称 |
-| time_start | int    |      |
-| time_end   | int    |      |
-
-
-
 - 返回：
 
-  ```json
-  {
-      "code":0 
-     , "data" :[
-         {
-             "name": "<成员名>"
-             , "uid" :"<成员 UID>"
-             , "choose" : "..."
-             , "chktime" : "<签到时间>"
-             , "device" : "..."
-             , "img_path" : "..."
-             , "res" : "..."
-         }
-         , ...
-       ]
-     , "msg": "success"} // 成功
-
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
-  ```
-
-
-
-
-####签到情况统计
-
-- API：http://sign.stuhome.com/v1/star/counting
-
-- 请求方法：GET
-
-- 请求参数：
-
-  参数用于过滤特定结果。
-
-| 参数名        | 类型   | 说明                                   |
-| ---------- | ---- | ------------------------------------ |
-| start_time | int  | 开始时间戳  （从 1970-1-1 8:00:00 开始所经过的秒数） |
-| end_time   | int  | 结束时间戳 （从 1970-1-1 8:00:00 开始所经过的秒数）  |
-
-- 返回：
+  若成功退出，则会返回
 
   ```json
-  {
-      "code":0 
-     , "data" :[
-         {
-             "name": "<成员名>"
-             , "uid" :"<成员 UID>"
-             , "count" : "<完整签到次数>"
-         }
-         , ...
-  	]
-     , "msg": "success"} // 成功
-
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
+  Logouted.
   ```
 
-  ​
+  未登录时，返回
 
-  ​
-
-  ​
-
-### 全部人员概览
-
-- API： http://sign.stuhome.com/v1/star/member
-
-- 请求方法：GET
-
-- 参数：无
-
-- 返回：
-
-  ```json
-  {
-      "code":0 
-     , "data" :[
-         {
-             "name": "<成员名>"
-             , "uid" :"<成员 UID>"
-             , "gid" : "<所属组 GID>"
-             , "age" : "<年龄>"
-             , "sex" : "<性别>"
-             , "address" : "<联系地址>"
-             , "tel" : "<联系电话>"
-             , "mail" : "<电子邮箱>"
-         }
-         , ...
-       ]
-     , "msg": "success"} // 成功
-
-  {"code":<status_code>, "data":'', "msg": "<error descrption>"} // 失败
+  ```
+  You are not logined.
   ```
 
-  ​
+---
 

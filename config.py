@@ -31,6 +31,9 @@ MYSQL_DATABASE_DB = 'starstudio'
 MYSQL_DATABASE_CHARSET = 'utf8'
 
 # Access contaol                            # 权限控制
+ALLOW_REGISTER = True                       # 允许外部注册
+ALLOW_ANONYMOUS_GROUP_INFO = True           # 允许匿名访问小组信息，以方便注册
+
 USER_INITIAL_ACCESS = frozenset([
     'auth', 'read_self', 'read_internal', 'read_other', 'write_self', 'read_group'
 ])
@@ -38,6 +41,7 @@ USER_INITIAL_ACCESS = frozenset([
 APP_INITIAL_ACCESS = frozenset([
     'auth', 'read_self'
 ])
+
 
 # Web console
 SSO_WEB_REDIRECT_PREFIX = 'http://127.0.0.1:5000/'  # 内部 SSO 管理面板登录的Redirect前缀

@@ -1,11 +1,12 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.views import SignAPIView, resource_access_denied
+from StarMember.views import SignAPIView, resource_access_denied, with_application_token
 import uuid
 
 class GroupAPIView(SignAPIView):
     methods = ['POST', 'DELETE', 'GET']
 
+    @with_application_token(deny_unauthorization = True)
     def post(self):
         if 'alter_group' not in request.app_verbs:
             return resource_access_denied()
@@ -55,6 +56,7 @@ class GroupAPIView(SignAPIView):
         })
 
 
+    @with_application_token(deny_unauthorization = True)
     def delete(self):
         if 'alter_group' not in request.app_verbs:
             return resource_access_denied()
@@ -116,7 +118,12 @@ class GroupAPIView(SignAPIView):
             , 'data' : ''
         })
 
+    
+    @with_application_token(deny_unauthorization = False)
     def get(self):
+        if current_app.config['ALLOW_ANONYMOUS_GROUP_INFO'] is not True and request.auth_err_response is not None:
+            return request.auth_err_response
+
         if 'read_group' not in request.app_verbs:
             return resource_access_denied()
 

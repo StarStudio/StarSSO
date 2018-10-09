@@ -1,6 +1,7 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.views import SignAPIView, resource_access_denied
+from StarMember.views import SignAPIView, resource_access_denied, with_application_token
+from StarMember.utils import password_hash
 import uuid
 
 
@@ -31,6 +32,7 @@ def remove_user(**kwargs):
                 return resource_access_deined()
 
         #if 'uid' in kwargs:
+            affected = c.execute('delete from auth where uid=%s', (kwargs['uid']))
             affected = c.execute('delete from group_members where uid=(%s)', (kwargs['uid'],))
             affected = c.execute('delete from user where id=(%s)', (kwargs['uid'],))
         #else:
@@ -60,6 +62,7 @@ def remove_user(**kwargs):
 class MemberAccessView(SignAPIView):
     method = ['GET', 'DELETE', 'PUT']
 
+    @with_application_token(deny_unauthorization = True)
     def get(self, uid):
         if request.auth_user_id != uid:
             if 'read_internal' not in request.app_verbs\
@@ -120,6 +123,7 @@ class MemberAccessView(SignAPIView):
         })
 
 
+    @with_application_token(deny_unauthorization = True)
     def put(self, uid):
         if request.auth_user_id != uid:
             if 'write_other' not in request.app_verbs\
@@ -185,6 +189,7 @@ class MemberAccessView(SignAPIView):
         return jsonify({'code': 0, 'msg': 'success', 'data': ''})
             
 
+    @with_application_token(deny_unauthorization = True)
     def delete(self, uid):
         return remove_user(**{'uid': uid})
     
@@ -192,6 +197,7 @@ class MemberAccessView(SignAPIView):
 class MemberAPIView(SignAPIView):
     methods = ['POST', 'DELETE', 'GET']
 
+    @with_application_token(deny_unauthorization = True)
     def get(self):
         post_data = request.form.copy() 
         type_checker = post_data_type_checker(uid = int, gid = int)
@@ -265,11 +271,12 @@ class MemberAPIView(SignAPIView):
         })
 
 
+    @with_application_token(deny_unauthorization = False)
     def post(self):
         post_data = request.form.copy()
 
-        type_checker = post_data_type_checker(name = str, gid = int, sex = str, tel = str, mail = str)
-        key_checker = post_data_key_checker('name', 'gid', 'sex', 'tel', 'mail')
+        type_checker = post_data_type_checker(username = str, password = str, name = str, gid = int, sex = str, tel = str, mail = str)
+        key_checker = post_data_key_checker('username', 'password', 'name', 'gid', 'sex', 'tel', 'mail')
 
         ok, err_msg = key_checker(post_data)
         if not ok:
@@ -281,41 +288,65 @@ class MemberAPIView(SignAPIView):
         ok, err_msg = type_checker(post_data)
         if not ok:
             return jsonify({
-                        'code': 1422
-                        , 'msg': err_msg
-                        , 'data': ''
+                    'code': 1422
+                    , 'msg': err_msg
+                    , 'data': ''
             })
+
+        if len(post_data['password']) < 6:
+            return jsonify({'code': 1422, 'msg': 'Password too short', 'data':''})
+        if len(post_data['username']) < 6:
+            return jsonify({'code': 1422, 'msg': 'Username too short', 'data': ''})
+        
+
         request.post_data = post_data
 
+        allow_anonymous = current_app.config.get('ALLOW_REGISTER', False)
         conn = current_app.mysql.connect()
         conn.begin()
         c = conn.cursor()
         try:
-            affected = c.execute('select gid from group_members where uid=%s', (request.auth_user_id,))
-            if affected < 1:
-                return jsonify({'code': 1422, 'msg': 'Pending user.', 'data': ''})
-            my_gid = int(c.fetchall()[0][0])
+            if not allow_anonymous:
+                if request.auth_err_response is not None:
+                    return request.auth_err_response
 
-            if my_gid != request.post_data['gid']:
-                if 'write_internal' not in request.app_verbs:
+                affected = c.execute('select gid from group_members where uid=%s', (request.auth_user_id,))
+                if affected < 1:
+                    return jsonify({'code': 1422, 'msg': 'Pending user.', 'data': ''})
+                my_gid = int(c.fetchall()[0][0])
+
+                if my_gid != request.post_data['gid']:
+                    if 'write_internal' not in request.app_verbs:
+                        return resource_access_deined()
+                elif 'write_other' not in request.app_verbs:
                     return resource_access_deined()
-            elif 'write_other' not in request.app_verbs:
-                return resource_access_deined()
-                
 
-            c.execute('select name from work_group where (id = %s)', (request.post_data['gid']))
-            
-            result = c.fetchall()
-            if result:
-                c.execute('insert into user(name, sex, tel, mail, access_verbs) values(%s, %s, %s, %s, %s)', (request.post_data['name'], request.post_data['sex'], request.post_data['tel'], request.post_data['mail'], ' '.join(current_app.config['USER_INITIAL_ACCESS'])))
-                uid = c.lastrowid
-                c.execute('insert into group_members(gid, uid) values (%s, %s)', (request.post_data['gid'], uid))
-            else:
+            affected = c.execute('select count(*) from work_group where (id = %s)', (request.post_data['gid']))
+            if affected < 1:
                 return jsonify({
                     'code': 1423
                     , 'msg': 'group %d not exists' % request.post_data['gid']
                     , 'data' :''
                 })
+            if request.post_data['gid'] == 1:
+                return jsonify({
+                    'code': 1423
+                    , 'msg': 'Cannot join this group.'
+                    , 'data' :''
+                })
+
+            affected = c.execute('select count(username) from auth where username=%s', (post_data['username'],))
+            if affected < 1:
+                return jsonify({
+                    'code': 1423
+                    , 'msg': 'Username already exists.'
+                    , 'data' : ''
+                })
+                
+            c.execute('insert into user(name, sex, tel, mail, access_verbs) values(%s, %s, %s, %s, %s)', (request.post_data['name'], request.post_data['sex'], request.post_data['tel'], request.post_data['mail'], ' '.join(current_app.config['USER_INITIAL_ACCESS'])))
+            uid = c.lastrowid
+            c.execute('insert into group_members(gid, uid) values (%s, %s)', (request.post_data['gid'], uid))
+            c.execute('insert into auth(uid, username, secret) values (%s, %s, %s)', (uid, post_data['username'], password_hash(post_data['password'])))
 
         except Exception as e:
             # log exception here with uid
@@ -335,6 +366,7 @@ class MemberAPIView(SignAPIView):
         })
 
 
+    @with_application_token(deny_unauthorization = True)
     def delete(self):
         post_data = request.form.copy()
         #type_checker = post_data_type_checker(name = str, uid = str)
