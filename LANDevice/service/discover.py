@@ -12,10 +12,10 @@ from gevent.lock import Semaphore
 from gevent.event import Event
 from gevent.queue import Queue, Empty
 from .ping import ping
-from .error import InterfaceNotFoundError
-from .utils import IPv4ToInt, IntToIPv4
-from .config import LANDeviceProberConfig
 from .arp import ARPRequest
+from LANDevice.error import InterfaceNotFoundError
+from LANDevice.utils import IPv4ToInt, IntToIPv4
+from LANDevice.config import LANDeviceProberConfig
 
 
 def _probe_fibre(_addr, _interface, _timeout, _queue):
@@ -210,8 +210,7 @@ class LANDeviceProber:
                     print('Device presents at %s' % ip)
                 elif mac != self._tracker_info[tracker]:
                     self._tracker_info[tracker] = mac
-
-        new_alive_set = set([(ip, mac) for ip, _ in trackers.items() for mac, (timestamp, trackers) in self._device_last_alive.items()])
+        new_alive_set = set([(ip, mac) for mac, (_, trackers) in self._device_last_alive.items() for ip in trackers.keys()])
         self.publish_port.PublishDevices(new_alive_set)
 
 
@@ -245,8 +244,6 @@ class LANDeviceProber:
                 self._device_last_alive[mac][0] = cur_time
             gevent.sleep(self._config.track_interval)
         print('Leave: %s' % _ip)
-            
-        
         
 
     def _device_probe_procedure_lead(self):
