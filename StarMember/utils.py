@@ -90,7 +90,7 @@ def decode_token(_encoded_token):
     key = current_app.jwt_key
     try:
         token = JWT(key = key, jwt = _encoded_token)
-    except InvalidJWSSignature or JWTExpired or ValueError as e:
+    except (InvalidJWSSignature, JWTExpired, ValueError) as e:
         return False, None, None, None, None, None
 
     claims = json.loads(token.claims)
