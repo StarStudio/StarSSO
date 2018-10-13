@@ -8,6 +8,7 @@ from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker
 from StarMember.utils import password_hash
 from StarMember.utils import new_encoded_token, decode_token
+from StarMember.views import require_login
 from base64 import b64decode
 from datetime import datetime, timedelta
 
@@ -18,7 +19,8 @@ class LoginView(MethodView):
     def http_basic_auth(self):
         auth_header = request.headers.get('Authorization', None)
         if None is auth_header:
-            return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data':''}), 403)
+            #return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data':''}), 403)
+            return require_login()
         splited = auth_header.split(' ')
         
         if len(splited) != 2:
@@ -93,7 +95,7 @@ class LoginView(MethodView):
 
 
             if new_auth_token:
-                resp.set_cookie('token', value = new_auth_token, domain = request.environ['SERVER_NAME'], expires = new_auth_token_expire.timestamp(), path = '/sso')
+                resp.set_cookie('token', value = new_auth_token, domain = request.environ['HTTP_HOST'], expires = new_auth_token_expire.timestamp(), path = '/sso')
  
         except Exception as e:
             expection_id = uuid.uuid4()
