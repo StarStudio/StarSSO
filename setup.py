@@ -6,10 +6,13 @@ def load_requirements():
     return [req.replace('\n', '') for req in open(os.path.join(os.getcwd(), 'requirements.txt'), 'rt').readlines()]
 
 setup(
-    name = 'StarMember'
+    name = 'StarSSO'
     , description = "Starstudio Single Sign-on Server."
     , version = '1.0.1'
-    , packages = find_packages()
+    , packages = find_packages(exclude=['LANDevice', 'LANDevice.*'])
     , install_requires = load_requirements()
+    , data_files = [
+        'requirements.txt'
+    ]
 )
 
