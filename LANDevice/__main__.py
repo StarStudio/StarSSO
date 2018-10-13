@@ -1,7 +1,7 @@
 import os
 
 from .config import LANDeviceProberConfig
-from .discover import LANDeviceProber
+from .service.discover import LANDeviceProber
 
 
 def main():

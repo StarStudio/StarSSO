@@ -2,7 +2,6 @@ Flask==1.0.2
 flask-mysql
 flask-redis
 pymysql
-gevent
-apscheduler
 redis
-netifaces
+jwcrypto
+LANDevice

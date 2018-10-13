@@ -1,13 +1,101 @@
 import uuid
 import json
-import uuid
-import json
+
 from datetime import datetime
-from flask import current_app, jsonify, request
+from flask import current_app, jsonify, request, make_response
 from flask.views import MethodView
 from traceback import print_exc, format_exc
+from .utils import decode_token
+from functools import wraps
+
+
+def resource_access_denied():
+    return make_response(jsonify({'code': 1201, 'msg': 'You have no access to this resources', 'data': ''}), 403)
+
+#def with_access_verbs(*need_verbs):
+#    combined_needs = []
+#    single_needs = []
+#    for needs in need_verbs:
+#        if isinstance(needs, (tuple, list)):
+#            combined_needs.append(needs)
+#        else:
+#            single_needs.append(needs)
+#
+#    combined_needs = tuple(combined_needs)
+#    single_needs = tuple(single_needs)
+#            
+#    def decorate(_function):
+#        @wraps(_function)
+#        def decorated(*args, **kwargs):
+#            app_verbs = request.app_verbs
+#            for verb in single_needs:
+#                if verb not in app_verbs:
+#                    return resouce_access_denied()
+#            for verbs in combined_needs:
+#                satisfied = False
+#                for verb in verbs:
+#                    if verb in app_verbs:
+#                        satisfied = True
+#                        break
+#                if not satisfied:
+#                    return resource_access_denied()
+#            return _function(*args, **kwargs)
+#        return decorated
+#    return decorate
+
+def try_http_bearer_auth():
+    auth_header = request.headers.get('Authorization', None)
+    if None is auth_header:
+        return False
+    splited = auth_header.split(' ')
+
+    if len(splited) != 2:
+        abort(400)
+    method, auth_content = splited
+    if method != 'Bearer':
+        return False
+        # return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
+
+    request.auth_token = auth_content
+    return True
+    
+
+def try_cookie_token_auth():
+    token = request.cookies.get('token', None)
+    if token is None:
+        return False
+    request.auth_token = token
+    return True
+
+
+def with_application_token(deny_unauthorization = True):
+    def decorate(_function):
+        @wraps(_function)
+        def decorated(*args, **kwargs):
+            auth_err_response = None
+            if not try_http_bearer_auth() and not try_cookie_token_auth():
+                auth_err_response = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 403)
+                if deny_unauthorization:
+                    return auth_err_response
+            else: 
+                valid, token_type, username, user_id, expire, verbs = decode_token(request.auth_token)
+                if not valid or token_type != 'application':
+                    auth_err_response = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 403)
+                    if deny_unauthorization:
+                        return auth_err_response
+
+                request.auth_user = username
+                request.auth_user_id = user_id
+                request.app_verbs = verbs
+
+            request.auth_err_response = auth_err_response
+            return _function(*args, **kwargs)
+        return decorated
+    return decorate
+
 
 class SignAPIView(MethodView):
+
     def dispatch_request(self, *arg, **kwarg):
         try:
             log_info = {}
@@ -16,10 +104,12 @@ class SignAPIView(MethodView):
             log_info['time'] = str(datetime.now())
             if len(request.form) > 0:
                 log_info['form'] = request.form.copy()
+
             result =  super().dispatch_request(*arg, **kwarg)
             log_info['result'] = json.loads(result.data.decode())
             current_app.access_logger.info(json.dumps(log_info))
             return result
+
         except Exception as e:
             exc_uuid = uuid.uuid4()
             print_exc()

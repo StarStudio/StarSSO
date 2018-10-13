@@ -2,7 +2,11 @@
 
 工作室内部的单点登陆（SSO）服务，供工作室内部系统（包括但不限于签到系统、PaaS容器平台）做身份认证使用。预计使用JWT(Json Web Token)规范。
 
+---
 
+### 文档 (Documentation)
+
+具体的使用方法可参考 [API 文档](api.md)
 
 ---
 
@@ -25,7 +29,52 @@ pip install -r requirements.txt
 
 ### StarMember
 
-身份管理、认证服务器，提供Restful API。
+身份管理、认证服务器，支持单点登录，提供Restful API。
+
+#### 配置
+
+在环境变量 API_CFG 指定配置文件位置。
+
+```bash
+export LAN_DEV_PROBER_CONFIG=<配置文件绝对路径>
+```
+
+##### 配置说明
+
+```python
+# Logging
+ACCESS_LOG = 'access.log'                   # 日志文件
+ERROR_LOG = 'error.log'
+DEBUG_LOG = 'debug.log'
+
+DEBUG = False                               # 调试模式
+
+
+# Secret
+SECRET_KEY_FILE = 'jwt.pri'                 # JWT 私钥
+SECRET_KEY_FILE_MODE = 0o600                # 私钥文件权限
+PUBLIC_KEY_FILE = 'jwt.pub'                 # JWT 公钥
+PUBLIC_KEY_MODE = 0o666                     # 公钥文件权限
+
+SALT_FILE = 'starstudio.salt'               # 密码散列盐
+SALT_FILE_MODE = 0o600                      # 文件权限
+
+AUTH_TOKEN_EXPIRE_DEFAULT = 86400           # Auth 类型 Token 的有效时间 (秒)
+APP_TOKEN_EXPIRE_DEFAULT = 86400            # Application 类型 Token 的有效时间 (秒)
+
+# Database
+MYSQL_DATABASE_HOST = 'localhost'           # 数据库配置
+MYSQL_DATABASE_PORT = 3306
+MYSQL_DATABASE_USER = 'root'
+MYSQL_DATABASE_PASSWORD = None
+MYSQL_DATABASE_DB = 'starstudio'
+MYSQL_DATABASE_CHARSET = 'utf8'
+
+# Web console
+SSO_WEB_REDIRECT_PREFIX = 'http://127.0.0.1:5000/'  # 内部 SSO 管理面板登录的Redirect前缀
+```
+
+生产环境请使用 gunicorn 部署，以保证性能。
 
 
 
