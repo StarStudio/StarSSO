@@ -1,6 +1,7 @@
 <!DOCTYPE HTML>
 <html>
     <head>
+        <meta charset="UTF-8">
         <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js" integrity="sha384-q8i/X+965DzO0rT7abK41JStQIAqVgRVzpbzo5smXKp4YfRvH+8abtTE1Pi6jizo" crossorigin="anonymous"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/popper.js/1.14.3/umd/popper.min.js" integrity="sha384-ZMP7rVo3mIykV+2+9J3UJ46jBk0WLaUAdn689aCwoqbBJiSnjAK/l8WvCWPIPm49" crossorigin="anonymous"></script>
         <!-- <script src="https://stackpath.bootstrapcdn.com/bootstrap/4.1.3/js/bootstrap.min.js" integrity="sha384-ChfqqxuZUCnJSK3+MXmPNIyE6ZbWh2IMqE241rYiqJxyMiZ6OW/JmZQ5stwEULTy" crossorigin="anonymous"></script>
@@ -13,6 +14,7 @@
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/css/bootstrap-datetimepicker.min.css">
         <script src="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-datetimepicker/4.17.47/js/bootstrap-datetimepicker.min.js"></script>
         <script src="https://cdnjs.cloudflare.com/ajax/libs/vue/2.5.17/vue.js"></script>
+        <script src="https://cdnjs.cloudflare.com/ajax/libs/axios/0.18.0/axios.min.js"></script>
         <link href="css/login.css" rel="stylesheet">
         <!--<link rel="stylesheet" href="css/font-awesome.min.css">-->
         <script src="js/login.js"></script>
@@ -35,36 +37,51 @@
             </div>
             <div id="loginbox">
                 <div id="login_form_box" v-show="current_selected == 'login'">
-                    <input type="text" class="form-control input_form_item" placeholder="用户名" aria-label="Username" aria-describedby="basic-addon1">
-                    <input type="password" class="form-control input_form_item" placeholder="密码" aria-label="Password" aria-describedby="basic-addon1">
-                    <div id="login_btns">
-                        <button type="button" class="btn btn-default">清空</button>
-                        <button type="button" class="btn btn-primary">登录</button>
-                    </div>
+                        <input type="text" class="form-control input_form_item" placeholder="用户名" aria-label="Username" aria-describedby="basic-addon1" v-model="login.username">
+                        <input type="password" class="form-control input_form_item" placeholder="密码" aria-label="Password" aria-describedby="basic-addon1" v-model="login.password">
+                        <div class="alert input_form_item" 
+                             v-bind:class="{'alert-danger': control.login_err_box_style == 'error', 'alert-info': control.login_err_box_style == 'info', 'alert-success' : control.login_err_box_style=='success'}" 
+                                role="alert" v-show="control.show_login_err" >
+                            {{ control.login_err_msg }}
+                        </div>
+                        <div id="login_btns">
+                            <button type="button" v-on:click="login.username=''; login.password=''; control.show_login_err = false;" class="btn btn-default">清空</button>
+                            <button type="submit" v-on:click="loginSubmit" class="btn btn-primary">登录</button>
+                        </div>
+                    </form>
                 </div>
                 <div id="register_form_box" v-show="current_selected == 'register'">
-                    <input type="text" class="form-control input_form_item" placeholder="用户名" aria-label="Username" aria-describedby="basic-addon1">
-                    <input type="password" class="form-control input_form_item" placeholder="密码" aria-label="Password" aria-describedby="basic-addon1">
-                    <input type="password" class="form-control input_form_item" placeholder="确认密码" aria-label="PasswordConfirm" aria-describedby="basic-addon1">
+                    <input type="text" class="form-control input_form_item" placeholder="用户名" aria-label="Username" aria-describedby="basic-addon1" v-model="register.username">
+                    <input type="password" class="form-control input_form_item" placeholder="密码" aria-label="Password" aria-describedby="basic-addon1" v-model="register.password">
+                    <input type="password" class="form-control input_form_item" placeholder="确认密码" aria-label="PasswordConfirm" aria-describedby="basic-addon1" v-model="register.password_confrim">
                     <div class="input_form_item">
-                        <select id="sex_select" class="selectpicker form-control" data-style="btn-default">
-                            <option>性别</option>
+                        <select id="sex_select" class="selectpicker form-control" data-style="btn-default" title="性别" v-model="register.sex">
                             <option>男</option>
                             <option>女</option>
                         </select>
                     </div>
+                    <div class="input_form_item">
+                        <select id="group_select" class="selectpicker form-control" data-style="btn-default" title="小组" v-model="register.gid">
+                            <option v-for="group in group_set" :value="group.gid" >{{ group.name }}</option>
+                        </select>
+                    </div>
                     <div class='input-group date login_input_date' id='datetime1'>
-                        <input type='text' class="form-control" />
+                        <input type='text' class="form-control" v-model="register.birthday" />
                         <span class="input-group-addon">
                             <span class="glyphicon glyphicon-calendar"></span>
                         </span>
                     </div>
-                    <input type="text" class="form-control input_form_item" placeholder="邮箱" aria-label="Email" aria-describedby="basic-addon1">
-                    <input type="text" class="form-control input_form_item" placeholder="联系地址" aria-label="Address" aria-describedby="basic-addon1">
-                    <input type="text" class="form-control input_form_item" placeholder="电话" aria-label="Email" aria-describedby="basic-addon1">
+                    <input type="text" class="form-control input_form_item" placeholder="邮箱" aria-label="Email" aria-describedby="basic-addon1" v-model="register.mail">
+                    <input type="text" class="form-control input_form_item" placeholder="联系地址" aria-label="Address" aria-describedby="basic-addon1" v-model="register.address">
+                    <input type="text" class="form-control input_form_item" placeholder="电话" aria-label="Email" aria-describedby="basic-addon1" v-model="register.tel">
+                    <div class="alert input_form_item" 
+                         v-bind:class="{'alert-danger': control.reg_err_box_style == 'error', 'alert-info': control.reg_err_box_style == 'info', 'alert-success' : control.reg_err_box_style=='success'}" 
+                         role="alert" v-show="control.show_reg_err" >
+                        {{ control.reg_err_msg }}
+                    </div>
                     <div id="login_btns">
-                        <button v-on:click="" type="button" class="btn btn-default">清空</button>
-                        <button v-on:clidk="" type="button" class="btn btn-primary">注册</button>
+                        <button v-on:click="clearRegister" type="button" class="btn btn-default">清空</button>
+                        <button v-on:click="registerUser" type="button" class="btn btn-primary">注册</button>
                     </div>
                 </div>
             </div>
