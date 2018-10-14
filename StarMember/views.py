@@ -2,7 +2,7 @@ import uuid
 import json
 
 from datetime import datetime
-from flask import current_app, jsonify, request, make_response
+from flask import current_app, jsonify, request, make_response, Response
 from flask.views import MethodView
 from traceback import print_exc, format_exc
 from .utils import decode_token
@@ -11,6 +11,15 @@ from functools import wraps
 
 def resource_access_denied():
     return make_response(jsonify({'code': 1201, 'msg': 'You have no access to this resources', 'data': ''}), 403)
+
+
+def require_login(_realm = 'You are not logined.'):
+    resp = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 401)
+    resp.headers['WWW-Authenticate'] = 'Basic realm="%s"' % _realm
+    return resp
+
+def param_error(_msg = 'Wrong params'):
+    return make_response(jsonify({'code': 1422, 'msg': _msg, 'data': ''}), 200)
 
 #def with_access_verbs(*need_verbs):
 #    combined_needs = []
@@ -81,6 +90,7 @@ def with_application_token(deny_unauthorization = True):
                 valid, token_type, username, user_id, expire, verbs = decode_token(request.auth_token)
                 if not valid or token_type != 'application':
                     auth_err_response = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 403)
+                    #auth_err_response = Response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 401, {'WWW-Authenticate': 'Basic realm="You are not logined."'})
                     if deny_unauthorization:
                         return auth_err_response
 
