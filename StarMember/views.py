@@ -18,6 +18,9 @@ def require_login(_realm = 'You are not logined.'):
     resp.headers['WWW-Authenticate'] = 'Basic realm="%s"' % _realm
     return resp
 
+def param_error(_msg = 'Wrong params'):
+    return make_response(jsonify({'code': 1422, 'msg': _msg, 'data': ''}), 200)
+
 #def with_access_verbs(*need_verbs):
 #    combined_needs = []
 #    single_needs = []
