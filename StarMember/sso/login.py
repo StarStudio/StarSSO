@@ -14,7 +14,7 @@ from datetime import datetime, timedelta
 
 
 class LoginView(MethodView):
-    method = ['GET']
+    method = ['POST', 'GET']
 
     def form_auth(self):
         form = request.form.copy()
@@ -51,8 +51,6 @@ class LoginView(MethodView):
             conn.commit()
 
         return None
-        
-            
 
     #def http_basic_auth(self):
     #    auth_header = request.headers.get('Authorization', None)
@@ -148,21 +146,7 @@ class LoginView(MethodView):
         return resp
 
 
-    def get(self):
-        args = request.args.copy()
-        type_checker = post_data_type_checker(appid = int, redirectURL = str)
-        ok, err_msg = type_checker(args)
-        if not ok:
-            return make_response('Wrong arguments submitted.')
-
-        appid = args.get('appid', None)
-        if appid is None:
-            return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data':''}), 200)
-
-
-        redirect_url = args.get('redirectURL', None)
-        app_expire = current_app.config.get('APP_TOKEN_EXPIRE_DEFAULT', 86400)
-
+    def response_app_token(self, appid, redirect_url, app_expire):
         conn = request.current_conn
         conn.begin()
         c = conn.cursor()
@@ -194,3 +178,22 @@ class LoginView(MethodView):
 
         return redirect(full_redir_url, 302)
         
+
+    def post(self):
+        args = request.args.copy()
+        type_checker = post_data_type_checker(appid = int, redirectURL = str)
+        ok, err_msg = type_checker(args)
+        if not ok:
+            return make_response('Wrong arguments submitted.')
+
+        appid = args.get('appid', None)
+        if appid is None:
+            return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data':''}), 200)
+
+        redirect_url = args.get('redirectURL', None)
+        app_expire = current_app.config.get('APP_TOKEN_EXPIRE_DEFAULT', 86400)
+
+        return self.response_app_token(appid, redirect_url, app_expire)
+
+    def get(self):
+        return self.post()
