@@ -1,4 +1,4 @@
-from flask import request, current_app, jsonify
+from flask import request, current_app, jsonify, abort
 from StarMember.views import SignAPIView, with_application_token, resource_access_denied, api_succeed, api_user_pending, api_wrong_params
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.utils import MACToInt, IntToMAC
@@ -131,7 +131,6 @@ class BindView(SignAPIView):
             return api_wrong_params(str(e))
 
         device_lists = {MACToInt(mac): { 'IPs' : list(ips) } for mac, ips in current_app.device_list.Snapshot().items()}
-        print(current_app.device_list.Snapshot().items())
         if mac_int not in device_lists:
             return api_wrong_params('Device not found.')
         if request.remote_addr not in device_lists[mac_int]:
@@ -150,5 +149,34 @@ class BindView(SignAPIView):
             raise e
         finally:
             conn.commit()
+
+        return api_succeed()
+
+
+class BindManageView(SignAPIView):
+    method = ['DELETE']
+
+    @with_application_token(deny_unauthorization = True)
+    def delete(self, mac):
+        if len(mac) != 12:
+            abort(404)
+        try:
+            mac_int = int(mac, 16)
+        except ValueError as e:
+            abort(404)
+
+        conn = current_app.mysql.connect()
+        conn.begin()
+        c = conn.cursor()
+        try:
+            affected = c.execute('delete from device_bind where uid = %s and mac = %s', (request.auth_user_id, mac_int))
+            if affected < 1:
+                return api_wrong_params('Not binded or cannot unbind.')
+        except Exception as e:
+            conn.rollback()
+            raise e
+        finally:
+            conn.commit()
+            conn.close()
 
         return api_succeed()
