@@ -5,35 +5,30 @@ import werkzeug
 from traceback import format_exc
 from flask import Blueprint, current_app, make_response, request, abort, jsonify, redirect
 from flask.views import MethodView
-from StarMember.aspect import post_data_type_checker
+from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.utils import password_hash
 from StarMember.utils import new_encoded_token, decode_token
+from StarMember.views import require_login, param_error
 from base64 import b64decode
 from datetime import datetime, timedelta
 
 
 class LoginView(MethodView):
-    method = ['GET']
+    method = ['POST', 'GET']
 
-    def http_basic_auth(self):
-        auth_header = request.headers.get('Authorization', None)
-        if None is auth_header:
-            return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data':''}), 403)
-        splited = auth_header.split(' ')
-        
-        if len(splited) != 2:
-            abort(400)
-        method, auth_content = splited
-        if method != 'Basic':
-            return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
+    def form_auth(self):
+        form = request.form.copy()
+        type_checker = post_data_type_checker(username = str, password = str)
+        key_checker = post_data_key_checker('username', 'password')
+        ok, err_msg = key_checker(form)
+        if not ok:
+            return param_error(err_msg)
+        ok, err_msg = type_checker(form)
+        if not ok:
+            return param_error(err_msg)
 
-        try:
-            splited = b64decode(auth_content.encode('ascii')).decode('ascii').split(':')
-            if len(splited) != 2:
-                return make_response(jsonify({'code': 1202, 'msg': 'Bad request', 'data': ''}), 400)
-            request.auth_user, request.auth_password = splited
-        except binascii.Error as e:
-            return make_response(jsonify({'code': 1202, 'msg': 'Bad request', 'data': ''}), 400)
+        request.auth_user, request.auth_password = form['username'], form['password']
+
         conn = request.current_conn
         conn.begin()
         c = conn.cursor()
@@ -56,6 +51,49 @@ class LoginView(MethodView):
             conn.commit()
 
         return None
+
+    #def http_basic_auth(self):
+    #    auth_header = request.headers.get('Authorization', None)
+    #    if None is auth_header:
+    #        #return make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data':''}), 403)
+    #        return require_login()
+    #    splited = auth_header.split(' ')
+    #    
+    #    if len(splited) != 2:
+    #        abort(400)
+    #    method, auth_content = splited
+    #    if method != 'Basic':
+    #        return make_response(jsonify({'code': 1202, 'msg': 'Unsupported authorization method.', 'data': ''}), 403)
+
+    #    try:
+    #        splited = b64decode(auth_content.encode('ascii')).decode('ascii').split(':')
+    #        if len(splited) != 2:
+    #            return make_response(jsonify({'code': 1202, 'msg': 'Bad request', 'data': ''}), 400)
+    #        request.auth_user, request.auth_password = splited
+    #    except binascii.Error as e:
+    #        return make_response(jsonify({'code': 1202, 'msg': 'Bad request', 'data': ''}), 400)
+    #    conn = request.current_conn
+    #    conn.begin()
+    #    c = conn.cursor()
+    #    try:
+    #        affected = c.execute('select auth.secret, user.access_verbs, user.id from auth inner join user on auth.uid=user.id where auth.username=%s', (request.auth_user,))
+    #        if affected < 1:
+    #            return make_response(jsonify({'code': 1201, 'msg': 'Invali User or Password', 'data':'' }), 403)
+    #        secret, verbs, uid = c.fetchall()[0]
+    #        verbs = verbs.split(' ')
+    #        require_secret = password_hash(request.auth_password)
+    #        if require_secret != secret:
+    #            return make_response(jsonify({'code': 1201, 'msg': 'Invali User or Password', 'data':'' }), 403)
+    #        request.current_user_verbs = set(verbs)
+    #        request.auth_user_id = uid
+    #    except Exception as e:
+    #        conn.rollback()
+    #        raise e
+
+    #    finally:
+    #        conn.commit()
+
+    #    return None
 
 
     def cookie_token_auth(self):
@@ -82,7 +120,8 @@ class LoginView(MethodView):
             new_auth_token_expire = None
             
             if not self.cookie_token_auth():
-                resp = self.http_basic_auth()
+                #resp = self.http_basic_auth()
+                resp = self.form_auth()
                 if resp is not None:
                     return resp
                 # Generate 
@@ -93,7 +132,7 @@ class LoginView(MethodView):
 
 
             if new_auth_token:
-                resp.set_cookie('token', value = new_auth_token, domain = request.environ['SERVER_NAME'], expires = new_auth_token_expire.timestamp(), path = '/sso')
+                resp.set_cookie('token', value = new_auth_token, domain = request.environ['HTTP_HOST'], expires = new_auth_token_expire.timestamp(), path = '/sso')
  
         except Exception as e:
             expection_id = uuid.uuid4()
@@ -107,21 +146,7 @@ class LoginView(MethodView):
         return resp
 
 
-    def get(self):
-        args = request.args.copy()
-        type_checker = post_data_type_checker(appid = int, redirectURL = str)
-        ok, err_msg = type_checker(args)
-        if not ok:
-            return make_response('Wrong arguments submitted.')
-
-        appid = args.get('appid', None)
-        if appid is None:
-            return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data':''}), 200)
-
-
-        redirect_url = args.get('redirectURL', None)
-        app_expire = current_app.config.get('APP_TOKEN_EXPIRE_DEFAULT', 86400)
-
+    def response_app_token(self, appid, redirect_url, app_expire):
         conn = request.current_conn
         conn.begin()
         c = conn.cursor()
@@ -153,3 +178,22 @@ class LoginView(MethodView):
 
         return redirect(full_redir_url, 302)
         
+
+    def post(self):
+        args = request.args.copy()
+        type_checker = post_data_type_checker(appid = int, redirectURL = str)
+        ok, err_msg = type_checker(args)
+        if not ok:
+            return make_response('Wrong arguments submitted.')
+
+        appid = args.get('appid', None)
+        if appid is None:
+            return make_response(jsonify({'code': 0, 'msg': 'succeed', 'data':''}), 200)
+
+        redirect_url = args.get('redirectURL', None)
+        app_expire = current_app.config.get('APP_TOKEN_EXPIRE_DEFAULT', 86400)
+
+        return self.response_app_token(appid, redirect_url, app_expire)
+
+    def get(self):
+        return self.post()

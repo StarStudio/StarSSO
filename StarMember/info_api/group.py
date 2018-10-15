@@ -121,11 +121,11 @@ class GroupAPIView(SignAPIView):
     
     @with_application_token(deny_unauthorization = False)
     def get(self):
-        if current_app.config['ALLOW_ANONYMOUS_GROUP_INFO'] is not True and request.auth_err_response is not None:
-            return request.auth_err_response
-
-        if 'read_group' not in request.app_verbs:
-            return resource_access_denied()
+        if current_app.config['ALLOW_ANONYMOUS_GROUP_INFO'] is not True:
+            if request.auth_err_response is not None:
+                return request.auth_err_response
+            if 'read_group' not in request.app_verbs:
+                return resource_access_denied()
 
         post_data = request.form.copy()
         key_checker = post_data_key_checker()

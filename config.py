@@ -44,7 +44,7 @@ APP_INITIAL_ACCESS = frozenset([
 
 
 # Web console
-SSO_WEB_REDIRECT_PREFIX = 'http://127.0.0.1:5000/'  # 内部 SSO 管理面板登录的Redirect前缀
+SSO_WEB_REDIRECT_PREFIX = 'http://sso.local.com/'  # 内部 SSO 管理面板登录的Redirect前缀
 
 #
 #   LAN Device discover service.

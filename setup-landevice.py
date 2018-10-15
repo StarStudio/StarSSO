@@ -14,4 +14,7 @@ setup(
         , 'LANDevice.service'
     ]
     , install_requires = load_requirements()
+    , data_files = [
+        'requirements_landevice.txt'
+    ]
 )

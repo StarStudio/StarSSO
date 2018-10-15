@@ -2,6 +2,7 @@ from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.views import SignAPIView, resource_access_denied, with_application_token
 from StarMember.utils import password_hash
+from datetime import datetime
 import uuid
 
 
@@ -275,8 +276,8 @@ class MemberAPIView(SignAPIView):
     def post(self):
         post_data = request.form.copy()
 
-        type_checker = post_data_type_checker(username = str, password = str, name = str, gid = int, sex = str, tel = str, mail = str)
-        key_checker = post_data_key_checker('username', 'password', 'name', 'gid', 'sex', 'tel', 'mail')
+        type_checker = post_data_type_checker(username = str, password = str, birthday = str, name = str, gid = int, sex = str, tel = str, mail = str, address = str)
+        key_checker = post_data_key_checker('username', 'password', 'name', 'gid', 'sex', 'tel', 'mail', 'birthday', 'address')
 
         ok, err_msg = key_checker(post_data)
         if not ok:
@@ -297,6 +298,10 @@ class MemberAPIView(SignAPIView):
             return jsonify({'code': 1422, 'msg': 'Password too short', 'data':''})
         if len(post_data['username']) < 6:
             return jsonify({'code': 1422, 'msg': 'Username too short', 'data': ''})
+        try: 
+            datetime.strptime(post_data['birthday'], '%Y-%m-%d %H:%M:%S')
+        except ValueError as e:
+            return jsonify({'code': 1422, 'msg': 'Incorrent time format', 'data': ''})
         
 
         request.post_data = post_data
@@ -343,7 +348,7 @@ class MemberAPIView(SignAPIView):
                     , 'data' : ''
                 })
                 
-            c.execute('insert into user(name, sex, tel, mail, access_verbs) values(%s, %s, %s, %s, %s)', (request.post_data['name'], request.post_data['sex'], request.post_data['tel'], request.post_data['mail'], ' '.join(current_app.config['USER_INITIAL_ACCESS'])))
+            c.execute('insert into user(name, sex, tel, mail, birthday, address, access_verbs) values(%s, %s, %s, %s, %s, %s, %s)', (request.post_data['name'], request.post_data['sex'], request.post_data['tel'], request.post_data['mail'], post_data['birthday'], post_data['address'],' '.join(current_app.config['USER_INITIAL_ACCESS'])))
             uid = c.lastrowid
             c.execute('insert into group_members(gid, uid) values (%s, %s)', (request.post_data['gid'], uid))
             c.execute('insert into auth(uid, username, secret) values (%s, %s, %s)', (uid, post_data['username'], password_hash(post_data['password'])))
