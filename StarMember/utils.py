@@ -1,15 +1,35 @@
 import hashlib
 import uuid
 import json
+import re
 
 from base64 import b64encode
-from flask import current_app
+from flask import current_app, request
 from datetime import datetime
 from jwcrypto.jwt import JWT, JWTExpired
 from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.common import json_decode
+from LANDevice.utils import IPv4ToInt
+
+
+RE_MAC_PATTEN = re.compile('^(?:[0-9a-fA-F]{2}:){5}(?:[0-9a-fA-F]{2})$')
 
 ACCEPTABLE_TOKEN_TYPES = frozenset(['auth', 'application'])
+
+def get_real_remote_address():
+    forward_chain = request.headers.get('X-Forwarded-For', None)
+    if forward_chain is None:
+        ipv4_int = -1
+    else:
+        last = forward_chain.split(',')[-1].strip()
+        ipv4_int = IPv4ToInt(last)
+
+    if ipv4_int < 0:
+        return request.remote_addr
+
+    return last
+    
+    
 
 def password_hash(_password):
     '''
@@ -107,3 +127,22 @@ def decode_token(_encoded_token):
         return True, token_type, username, user_id, expire, set(verbs)
     except TypeError as e:
         return False, None, None, None, None, None
+
+
+def MACToInt(_mac):
+    '''
+        Convert MAC address to int
+    '''
+    if not RE_MAC_PATTEN.match(_mac):
+        raise ValueError('Invalid MAC format.')
+
+    return int(_mac.replace(':', ''), 16)
+
+def IntToMAC(_mac):
+    '''
+        Convert int to MAC address
+    '''
+    if _mac > 0xFFFFFFFFFFFF:
+        return ValueError('MAC integer is too big.')
+    digits = list('%012x' % _mac)
+    return ':'.join([digits[i] + digits[i+1] for i in range(0, len(digits), 2)])

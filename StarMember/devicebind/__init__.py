@@ -1,1 +1,1 @@
-from .bind_api import bind_api
+from .device_api import bind_api

@@ -12,7 +12,6 @@ from functools import wraps
 def resource_access_denied():
     return make_response(jsonify({'code': 1201, 'msg': 'You have no access to this resources', 'data': ''}), 403)
 
-
 def require_login(_realm = 'You are not logined.'):
     resp = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 401)
     resp.headers['WWW-Authenticate'] = 'Basic realm="%s"' % _realm
@@ -20,6 +19,15 @@ def require_login(_realm = 'You are not logined.'):
 
 def param_error(_msg = 'Wrong params'):
     return make_response(jsonify({'code': 1422, 'msg': _msg, 'data': ''}), 200)
+
+def api_succeed(_data = ''):
+    return jsonify({'code': 0, 'msg': 'succeed', 'data': _data})
+
+def api_user_pending(_data = ''):
+    return jsonify({'code': 0, 'msg': 'Pending user', 'data': _data})
+
+def api_wrong_params(_error = ''):
+    return jsonify({'code': 1422, 'msg': _error, 'data': ''})
 
 #def with_access_verbs(*need_verbs):
 #    combined_needs = []

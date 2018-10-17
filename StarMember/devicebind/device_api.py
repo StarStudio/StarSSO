@@ -1,11 +1,15 @@
 from flask import Blueprint, current_app
 from .list import DeviceListView
-from .myself import MyDeviceView
+from .myself import MyselfDeviceView
+from .bind import BindView, BindManageView
 from LANDevice import DeviceList, LANDeviceProberConfig
 
 bind_api = Blueprint('DeviceBindAPI', __name__, url_prefix = '/v1/star/device')
 bind_api.add_url_rule('/list', view_func = DeviceListView.as_view('DeviceList'))
-bind_api.add_url_rule('/myself', view_func = MyDeviceView.as_view('MyselfDevice'))
+bind_api.add_url_rule('/myself', view_func = MyselfDeviceView.as_view('MyselfDevice'))
+bind_api.add_url_rule('/mine', view_func =  BindView.as_view('Mine'))
+bind_api.add_url_rule('/mine/<string:mac>', view_func = BindManageView.as_view('BindManage'))
+
 
 
 @bind_api.before_app_request

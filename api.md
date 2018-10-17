@@ -4,9 +4,13 @@
 
 - [API结果返回格式](#API结果返回格式)
   - [状态码含义](#参考下列code状态码意义)
-- [认证](认证)
+- [认证接口](#认证)
   - [登录](#登录)
   - [退出](#退出)
+  - [API 认证](#API 认证)
+- 信息接口
+  - 组
+  - 成员
 - [安全性](#安全性)
   - 传输安全性
   - 对 Token 的校验
@@ -41,7 +45,7 @@
 
 ### 认证
 
-登录
+#### 登录
 
 支持一般的登录认证和单点登录。遵守 JSON Web Token 规范。登录的所有过程都需要在HTTPS下完成。
 
@@ -49,11 +53,16 @@
 
   - 请求路径：http://\<服务器名\>/sso/login
 
-  - 请求方法：GET
+  - 请求方法：POST
 
   - 认证方式：
 
-    使用 HTTP Basic Authentication，即附带 Basic Authorization 头部。
+    使用表单
+
+    | 参数     | 类型   | 描述   |
+    | -------- | ------ | ------ |
+    | username | string | 用户名 |
+    | password | string | 密码   |
 
   - 返回：
 
@@ -69,11 +78,13 @@
 
 - 获取应用 Token
 
-  读取用户信息需要 HTTP Bearer Authentication。获取的Token可以作为其他系统的 Token 使用。
+  登录时附带appid可获取应用Token。可以作为其他系统的 Token 使用。
 
   - 请求路径：http://\<服务器名\>/sso/login?appid=<应用ID>
 
-  - 请求方法、认证方式与只作认证使用时相同
+  - 请求方法：GET 或 GET
+
+  - 认证方式：表单认证，[见上](#登录)
 
   - 返回：
 
@@ -105,7 +116,7 @@
 
   - 利用 redirectURL 从 SSO 系统获取 Token
 
-    一个未有登录状态的系统可以通过以下步骤获取已登录的用户状态。
+    一个未有登录状态的系统可以通过以下步骤获取Token。
 
     - 发现未登录，将用户重定向至 
 
@@ -135,11 +146,17 @@
 
 ##### 退出
 
-- 请求路径：http://\<服务器名\>/sso/logout
+- 请求路径：http://\<服务器名\>/sso/logout?redirectURL=<重定向URL>
 
 - 请求方法：GET
 
+- 注意：退出仅仅是单点登录系统退出，其他系统的
+
 - 返回：
+
+  若附带了重定向URL。则会发生重定向。
+
+  否则。
 
   若成功退出，则会返回
 
@@ -155,3 +172,190 @@
 
 ---
 
+### API 认证
+
+访问大多数API接口需要附带Bearer Token，Token 的类型为 Application，可以通过API [获取](#登录) Application Token。
+
+---
+
+### 设备绑定
+
+#### 查看目前的设备信息（Draft）
+
+- 请求路径：http://\<服务器名\>/v1/star/device/myself
+
+- 请求方法：GET
+
+- 是否需要附带 Token：否
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": 200, "data":"<MAC地址>", "msg":"success"}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data":"88:d5:0c:8f:59:bb", "msg":"success"}
+    {"code": 200, "data":null, "msg":"success"} // 没有发现你的设备
+    ```
+
+- 额外说明：
+
+  - 如果没有发现设备，data 字段返回为 null. 表示设备尚未被发现。原因可能是这个设备并不在统一个网络，或者需要等候设备被发现。
+
+
+
+#### 查看当前用户已绑定的设备信息
+
+- 请求路径：http://\<服务器名\>/v1/star/device/mine
+
+- 请求方法：GET
+
+- 是否需要附带 Token：是
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": 200, "data":[
+            {
+                "uid": <用户1 uid>
+                , "mac": [
+                    "XX:XX:XX:XX:XX:XX"
+                    , "XX:XX:XX:XX:XX:XX"
+                    , ...
+                ]
+            }
+        	, {
+                "uid": <用户2 uid>
+                , "mac": [
+                    "XX:XX:XX:XX:XX:XX"
+                    , "XX:XX:XX:XX:XX:XX"
+                    , ...
+                ]
+            }
+        	, ...
+        ], "msg":"success"}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data":[
+            {
+                "uid": 1
+                , "mac": [
+                    "18:19:C0:19:57:1B"
+                    , "18:19:C0:C9:DE:1B"
+                ]
+            }
+        ], "msg":"success"}
+    ```
+
+
+
+#### 绑定当前设备
+
+- 请求路径：http://\<服务器名\>/v1/star/device/mine
+
+- 请求方法：POST
+
+- 是否需要附带 Token：是
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data":"", "msg":"success"}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data":"" , "msg":"success"} // 成功
+    {"code": 1422, "data":"Device not found." , "msg":"success"} // 未找到设备
+    {"code": 1422, "data":"Bind another device is not allowed." , "msg":"success"} // 不允许绑定非请求设备
+    {"code": 1422, "data":"Device bound." , "msg":"success"} // 设备已经被绑定
+    ```
+
+
+
+#### 当前在线设备的列表
+
+- 请求路径：http://\<服务器名\>/v1/star/device/list
+
+- 请求方法：GET
+
+- 是否需要附带 Token：是
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": 
+         {
+             "MAC1" : {
+                 'IPs' : [
+                       'x.x.x.x'
+                       , ...
+                  ]
+             , "MAC2" : {
+                 ...
+             }
+             , ...
+        }
+    }, "msg":"success"}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data":{
+        {
+            "94:65:2d:85:a5:91": [
+                "192.168.1.1"
+                , "192.168.1.189"
+            ]
+            , "94:65:2d:85:a5:92": [
+                "192.168.1.2"
+                , "192.168.1.39"
+            ]
+        }
+    }, "msg":"success"} // 成功
+    ```
+
+
+
+#### 取消设备绑定
+
+- 请求路径：http://\<服务器名\>/v1/star/mine/<设备MAC>
+
+- 请求方法：GET
+
+- 是否需要附带 Token：是
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": "", "msg":"success"}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data": "", "msg":"success"}
+    {"code": 1422, "data": "Not bound or cannot unbind", "msg":"success"}
+    ```
+
+
+
+#### 
