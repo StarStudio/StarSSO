@@ -143,7 +143,7 @@ class BindView(SignAPIView):
             c.execute('insert into device_bind(mac, uid) values (%s, %s)', (mac_int, request.auth_user_id))
         except IntegrityError as e:
             conn.rollback()
-            return api_wrong_params('Device already binded.')
+            return api_wrong_params('Device bound.')
         except Exception as e:
             conn.rollback()
             raise e
@@ -171,7 +171,7 @@ class BindManageView(SignAPIView):
         try:
             affected = c.execute('delete from device_bind where uid = %s and mac = %s', (request.auth_user_id, mac_int))
             if affected < 1:
-                return api_wrong_params('Not binded or cannot unbind.')
+                return api_wrong_params('Not bound or cannot unbind.')
         except Exception as e:
             conn.rollback()
             raise e
