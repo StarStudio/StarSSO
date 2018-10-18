@@ -1,8 +1,6 @@
 PROJECT_ROOT=$(dirname "$0")
-VERSION=$(cat "$PROJECT_ROOT/VERSION-LANDevice")
+source "$PROJECT_ROOT/build-env.sh"
 
-python "$PROJECT_ROOT/setup-landevice.py" sdist || exit 1
-mv "$PROJECT_ROOT/dist/LANDevice-$VERSION.tar.gz" "$PROJECT_ROOT/dist/LANDevice.tar.gz"
-
-docker build --build-arg DIST_VERSION=$VERSION -f "$PROJECT_ROOT/Docker/Dockerfile-LANDeviceService" -t landevice:$VERSION "$PROJECT_ROOT"
-rm "$PROJECT_ROOT/dist/LANDevice.tar.gz"
+build_sdist_landevice
+docker build --network host --build-arg DIST_VERSION=$LANDEV_VERSION -f "$PROJECT_ROOT/Docker/Dockerfile-LANDeviceService" -t landevice:$LANDEV_VERSION "$PROJECT_ROOT"
+clean_sdist_landevice
