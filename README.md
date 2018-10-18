@@ -16,6 +16,12 @@
 - **[LANDevice](#LANDevice)**
 - [**CheckBot**](#CheckBot)
 
+
+
+
+
+![Architecture](Architecture.svg)
+
 ---
 
 ### Docker 部署
