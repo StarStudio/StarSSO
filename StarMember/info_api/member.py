@@ -301,7 +301,7 @@ class MemberAPIView(SignAPIView):
         try: 
             datetime.strptime(post_data['birthday'], '%Y-%m-%d %H:%M:%S')
         except ValueError as e:
-            return jsonify({'code': 1422, 'msg': 'Incorrent time format', 'data': ''})
+            return jsonify({'code': 1422, 'msg': 'Incorrect time format', 'data': ''})
         
 
         request.post_data = post_data

@@ -7,7 +7,8 @@
 - [认证接口](#认证)
   - [登录](#登录)
   - [退出](#退出)
-  - [API 认证](#API 认证)
+  - [API 认证](#API认证)
+  - [Token 合法性校验](Token校验)
 - [设备绑定接口](#设备绑定)
   - [查看目前的设备信息（Draft）](#查看目前的设备信息（Draft）)
   - [查看当前用户已绑定的设备信息](#查看当前用户已绑定的设备信息)
@@ -16,7 +17,22 @@
   - [取消设备绑定](#取消设备绑定)
 - 信息接口
   - 组
+    - [获取小组信息](#获取小组信息)
+    - [添加小组](#添加小组)
+    - [删除小组](#删除小组)
   - 成员
+    - [获取成员信息](#获取成员信息)
+    - [批量获取成员信息](#批量获取成员信息)
+    - [添加成员](#添加成员)
+    - [删除成员](#删除成员)
+- 应用管理接口
+  - 条件查询应用
+  - 查询应用
+  - 删除应用
+  - 修改应用权限
+
+
+
 - [安全性](#安全性)
   - 传输安全性
   - 对 Token 的校验
@@ -176,9 +192,13 @@
   You are not logined.
   ```
 
+#### Token合法性校验
+
+
+
 ---
 
-### API 认证
+### API认证
 
 访问大多数API接口需要附带Bearer Token，Token 的类型为 Application，可以通过API [获取](#登录) Application Token。
 
@@ -358,7 +378,7 @@
   - 格式
 
     ```json
-    {"code": <状态码>, "data": "", "msg":"success"}
+    {"code": <状态码>, "data": "", "msg":"..."}
     ```
 
   - 返回示例：
@@ -368,4 +388,324 @@
     {"code": 1422, "data": "Not bound or cannot unbind", "msg":"success"}
     ```
 
+---
 
+### 信息接口
+
+#### 获取小组信息
+
+- 请求路径：http://\<服务器名\>/v1/star/group
+
+- 请求方法：GET
+
+- 是否需要附带 Token：一般为否，除非开启了此接口的认证
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": [{
+             ”name“: “<小组>”
+             , "gid": <小组ID>
+             , "desp": "<小组介绍>"
+        }
+        , ...
+    ], "msg":"success"}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data": [{
+        "name": "Devops"
+        , "gid": 2
+        , "desp": "Site Reliability Engineering Group."
+    ], "msg":"success"}
+    
+    {"code": 1422, "data": "Too many args", "msg":"success"} // 参数太多
+    ...
+    ```
+
+
+
+#### 添加小组
+
+- 请求路径：http://\<服务器名\>/v1/star/group
+
+- 请求方法：POST
+
+- 是否需要附带 Token：是
+
+- 表单参数
+
+  | 名称 | 类型   | 是否必须 | 描述     |
+  | ---- | ------ | -------- | -------- |
+  | name | string | 是       | 小组名称 |
+  | desp | string | 是       | 小组描述 |
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": {
+         "gid": <新小组 GID>
+    }, "msg":"success"}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": <状态码>, "data": {
+         "gid": 4
+    }, "msg":"success"}
+    
+    {"code": 1422, "data": "Too many args", "msg":"success"} // 参数太多
+    {"code": 1422, "data": "Arg name missing.", "msg":"success"} // 缺少参数 name
+    ...
+    ```
+
+
+
+#### 删除小组
+
+- 请求路径：http://\<服务器名\>/v1/star/group
+
+- 请求方法：DELETE
+
+- 是否需要附带 Token：是
+
+- 表单参数
+
+  | 名称 | 类型    | 是否必须 | 描述     |
+  | ---- | ------- | -------- | -------- |
+  | gid  | integer | 是       | 小组 GID |
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": "", "msg":"..."}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data":"" , "msg":"success"}
+    
+    {"code": 1422, "data": "", "msg":"Too many args"} // 参数太多
+    {"code": 1422, "data": "", "msg":"Arg name missing."} // 缺少参数 gid
+    {"code": 1422, "data": "", "msg":"GID 4 invalid. Group not exists."} // 小组不存在
+    {"code": 1505, "data": "", "msg":"Server raises a exception with id  XXXXXXX"} // 服务器提了一个 Issue
+    ...
+    ```
+
+
+
+#### 获取成员信息
+
+- 请求路径：http://\<服务器名\>/v1/star/member/(uid)
+
+- 请求方法：GET
+
+- 是否需要附带 Token：是
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": {
+          'name': "<名称>"
+          , 'birthday' : "<出生时间>"
+          , 'sex': "<性别>"
+          , 'address': "<联系地址>"
+          , 'tel': "<联系电话>"
+          , 'mail': "<邮箱>"
+          , 'access_verbs': "<拥有的权限>"
+          , 'id': <用户ID>
+          , 'gid': <组ID>
+    }, "msg":"..."}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": <状态码>, "data": {
+          'name': "渣渣辉"
+          , 'birthday' : "2018-10-16 21:24:54"
+          , 'sex': "男"
+          , 'address': "活在梦里"
+          , 'tel': "XXXXXXXXXXX"
+          , 'mail': "ZZH@starstudio.org"
+          , 'access_verbs': "auth read_self read_internal read_other write_self read_group"
+          , 'id': 8
+          , 'gid': 2
+    }, "msg":"succees"}
+    
+    {"code": 1422, "data": "", "msg":"Too many args"} // 参数太多
+    {"code": 1422, "data": "", "msg":"User not exists."} // 成员不存在
+    {"code": 1505, "data": "", "msg":"Server raises a exception with id  XXXXXXX"} // 服务器提了一个 Issue
+    ...
+    ```
+
+#### 批量获取成员信息
+
+- 请求路径：http://\<服务器名\>/v1/star/member
+
+- 请求方法：GET
+
+- 是否需要附带 Token：是
+
+- 表单参数：
+
+  | 名称 | 类型    | 是否必须 | 描述    |
+  | ---- | ------- | -------- | ------- |
+  | uid  | integer | 否       | 成员UID |
+  | gid  | integer | 否       | 小组GID |
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": [{
+          'name': "<名称>"
+          , 'birthday' : "<出生时间>"
+          , 'sex': "<性别>"
+          , 'address': "<联系地址>"
+          , 'tel': "<联系电话>"
+          , 'mail': "<邮箱>"
+          , 'access_verbs': "<拥有的权限>"
+          , 'id': <用户ID>
+          , 'gid': <组ID>
+        }
+        , ...
+    ], "msg":"..."}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": <状态码>, "data": [{
+          'name': "渣渣辉"
+          , 'birthday' : "2018-10-16 21:24:54"
+          , 'sex': "男"
+          , 'address': "活在梦里"
+          , 'tel': "XXXXXXXXXXX"
+          , 'mail': "ZZH@starstudio.org"
+          , 'access_verbs': "auth read_self read_internal read_other write_self read_group"
+          , 'id': 8
+          , 'gid': 2
+         }, {
+          'name': "彭于晏"
+          , 'birthday' : "2018-10-16 21:24:54"
+          , 'sex': "女"
+          , 'address': "活在现实"
+          , 'tel': "XXXXXXXXXXX"
+          , 'mail': "300Kilograms@starstudio.org"
+          , 'access_verbs': "auth read_self read_internal read_other write_self read_group"
+          , 'id': 9
+          , 'gid': 2
+         } 
+    ], "msg":"succees"}
+    
+    {"code": 1422, "data": "", "msg":"Too many args"} // 参数太多
+    {"code": 1505, "data": "", "msg":"Server raises a exception with id XXXXXXX"} // 服务器提了一个 Issue
+    ...
+    ```
+
+
+#### 添加成员
+
+- 请求路径：http://\<服务器名\>/v1/star/member
+
+- 请求方法：POST
+
+- 是否需要附带 Token：是
+
+- 表单参数
+
+  | 名称     | 类型    | 是否必须 | 描述                                                         |
+  | -------- | ------- | -------- | ------------------------------------------------------------ |
+  | username | string  | 是       | 登录名                                                       |
+  | password | string  | 是       | 登录密码                                                     |
+  | birthday | string  | 是       | 出生日期，UTC 时间，格式为 年-月-日 时:分:秒。如 2018-10-16 21:24:54 |
+  | name     | string  | 是       | 名称                                                         |
+  | gid      | integer | 是       | 小组 GID                                                     |
+  | sex      | string  | 是       | 性别                                                         |
+  | tel      | string  | 是       | 联系电话                                                     |
+  | mail     | string  | 是       | 电子邮件                                                     |
+  | address  | string  | 是       | 联系地址                                                     |
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": 200, "data": {
+        "uid": <新用户UID>
+    }, "msg":"..."}
+    {"code": <状态码>, "data": "", "msg":"..."}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data":{
+        "uid": 8
+    } , "msg":"success"}
+    
+    {"code": 1422, "data": "", "msg":"Password too short"} // 密码太短
+    {"code": 1422, "data": "", "msg":"Username already exists."} // 用户名已存在
+    {"code": 1422, "data": "", "msg":"Arg name missing."} // 缺少参数 name
+    {"code": 1422, "data": "", "msg":"Incorrect time format."} // 时间格式不正确
+    {"code": 1422, "data": "", "msg":"Group 4 not exists."} // 小组不存在
+    {"code": 1505, "data": "", "msg":"Server raises a exception with id XXXXXXX"} // 服务器提了一个 Issue
+    ...
+    ```
+
+
+
+#### 删除成员
+
+- 请求路径：
+
+  - http://\<服务器名\>/v1/star/member
+
+    - 表单参数
+
+      | 名称 | 类型    | 是否必须 | 描述     |
+      | ---- | ------- | -------- | -------- |
+      | uid  | integer | 是       | 成员 UID |
+
+  - http://<服务器名>/v1/star/member/(uid)
+
+- 请求方法：DELETE
+
+- 是否需要附带 Token：是
+
+- 返回：
+
+  - 格式
+
+    ```json
+    {"code": <状态码>, "data": "", "msg":"..."}
+    ```
+
+  - 返回示例：
+
+    ```json
+    {"code": 200, "data":"" , "msg":"success"}
+    
+    {"code": 1422, "data": "", "msg":"Too many args"} // 参数太多
+    {"code": 1422, "data": "", "msg":"Arg uid missing."} // 缺少参数 uid
+    {"code": 1505, "data": "", "msg":"Server raises a exception with id  XXXXXXX"} // 服务器提了一个 Issue
+    ...
+    ```
+
+
+
+#### 
