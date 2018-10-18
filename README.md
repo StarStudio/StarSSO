@@ -4,7 +4,7 @@
 
 ---
 
-### 文档 (Documentation)
+### API 文档 (Documentation)
 
 具体的使用方法可参考 [API 文档](api.md)
 
@@ -14,8 +14,31 @@
 
 - **[StarMember](#StarMember)**
 - **[LANDevice](#LANDevice)**
+- [**CheckBot**](#CheckBot)
 
+---
 
+### Docker 部署
+
+#### 构建
+
+```bash
+sudo ./docker-build-sso.sh           // 构建 SSO API Server 项目
+sudo ./docker-build-landevice.sh     // 构建 LANDevice 项目
+sudo ./docker-build-checkbot.sh      // 构建 Checkbot 项目
+```
+
+#### 单机部署
+
+```bash
+docker-compose up
+```
+
+---
+
+### StarMember
+
+身份管理、认证服务器，支持单点登录，提供Restful API。
 
 #### 依赖
 
@@ -24,12 +47,6 @@
 ```bash
 pip install -r requirements.txt
 ```
-
-
-
-### StarMember
-
-身份管理、认证服务器，支持单点登录，提供Restful API。
 
 #### 配置
 
@@ -82,6 +99,16 @@ SSO_WEB_REDIRECT_PREFIX = 'http://127.0.0.1:5000/'  # 内部 SSO 管理面板登
 
 设备感知服务，主动感知局域网内在线设备，提供子网内设备信息列表（MAC、IP、设备名等信息），并产生设备活动事件（加入、移除、设备名更新、DHCP重分配等事件），供其他服务使用。所有信息经过 Redis 实现订阅/发布。
 
+
+
+#### 依赖
+
+推荐使用 virtualenv 进行部署，在虚拟环境中安装依赖。
+
+```bash
+pip install -r requirements_landevice.txt
+```
+
 #### 配置
 
 在环境变量 LAN_DEV_PROBER_CONFIG 指定配置文件位置。
@@ -111,3 +138,20 @@ python -m LANDevice
 ```
 
 会阻塞，生产环境建议使用supervisor。
+
+
+
+### CheckBot 
+
+人员统计服务，结合设备绑定信息，自动统计成员进出情况。
+
+
+
+#### 依赖
+
+推荐使用 virtualenv 进行部署，在虚拟环境中安装依赖。
+
+```bash
+pip install -r requirements_checkbot.txt
+```
+
