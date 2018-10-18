@@ -20,7 +20,7 @@
 
 
 
-![Architecture](Architecture.svg)
+![Architecture](Architecture.png)
 
 ---
 
