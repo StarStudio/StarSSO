@@ -6,7 +6,8 @@ class LANDeviceProberConfig:
     VAR_LIST = frozenset([
             ('probe_timeout', 'LAN_DEV_LIVENESS_PROBE_TIMEOUT', int)
             , ('probe_interval', 'LAN_DEV_LIVENESS_PROBE_INTERVAL', int)
-            , ('redis', 'REDIS_URL', str)
+            , ('redis_host', 'LAN_DEV_REDIS_HOST', str)
+            , ('redis_port', 'LAN_DEV_REDIS_PORT', int)
             , ('interface', "LAN_DEV_INTERFACE", str)
             , ('redis_prefix', "LAN_DEV_REDIS_PROBER_IDENT_PREFIX", str)
             , ('track_interval', 'LAN_DEV_LIVENESS_TRACK_INTERVAL', int)

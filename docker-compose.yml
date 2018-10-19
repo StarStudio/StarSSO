@@ -1,30 +1,47 @@
 version: "3.2"
+volumes:
+    mysql_conf:
+
 services:
     account_storage:
-        image: mysql:5.7.23
+        image: mysql:8.0.12
         environment:
           - MYSQL_ROOT_PASSWORD=123456
-          - MYSQL_DATABASE=stsratudio
+          - MYSQL_DATABASE=starstudio
         volumes:
           - type: bind
             source: ./member.sql
             target: /docker-entrypoint-initdb.d/init.sql
           - type: bind
-            source: ./db
+            source: ./docker-data/mysql/data
             target: /var/lib/mysql
+
 
     publish-redis:
         image: redis:5.0.0
         ports:
           - "10028:6379"
+        volumes:
+          - type: bind
+            source: ./docker-data/redis/data
+            target: /data/
+            
 
     api-server:
         image: starsso:1.0.1
         environment: 
           - REDIS_HOST=publish-redis
           - MYSQL_HOST=account_storage
+          - MYSQL_PASSWORD=123456
           - MYSQL_DB=starstudio
           - MYSQL_USER=root
           - SERVER_HOST_NAME=sso.test.com
         ports:
-          - "8000:8000"
+          - "8000:80"
+        depends_on:
+          - account_storage
+          - publish-redis
+        volumes:
+          - type: bind
+            source: ./docker-data/StarSSO/conf
+            target: /etc/StarSSO
