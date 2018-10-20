@@ -1,6 +1,4 @@
 version: "3.2"
-volumes:
-    mysql_conf:
 
 services:
     account_storage:
@@ -45,3 +43,12 @@ services:
           - type: bind
             source: ./docker-data/StarSSO/conf
             target: /etc/StarSSO
+
+    checkbot:
+        image: checkbot:1.0.1
+        environment:
+          - REDIS_HOST=publish-redis
+          - MYSQL_HOST=account_storage
+          - MYSQL_PASSWORD=123456
+          - MYSQL_DB=starstudio
+          - MYSQL_USER=root

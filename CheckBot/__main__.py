@@ -6,8 +6,6 @@ from LANDevice import LANDeviceProberConfig, DeviceList
 from .config import CheckBotConfig
 from .utils import MACToInt, IntToMAC
 
-import ipdb
-
 def create_bundle_pymysql_connect(_config):
     def connect():
         return pymysql.connect(host = _config.mysql_host

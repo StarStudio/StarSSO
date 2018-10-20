@@ -13,4 +13,7 @@ setup(
         'CheckBot'
     ]
     , install_requires = load_requirements()
+    , data_files = [
+        'requirements_checkbot.txt'
+    ]
 )

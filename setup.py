@@ -9,7 +9,11 @@ setup(
     name = 'StarSSO'
     , description = "Starstudio Single Sign-on Server."
     , version = '1.0.1'
-    , packages = find_packages(exclude=['LANDevice', 'LANDevice.*'])
+    #, packages = find_packages(exclude=['LANDevice', 'LANDevice.*'])
+    , packages = [
+        'StarMember'
+        , 'StarMember.*'
+    ]
     , install_requires = load_requirements()
     , data_files = [
         'requirements.txt'
