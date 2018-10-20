@@ -48,12 +48,14 @@ SSO_WEB_REDIRECT_PREFIX = 'http://sso.local.com/'  # 内部 SSO 管理面板登�
 
 #
 #   LAN Device discover service.
+#   CheckBot service.
 #
-LAN_DEV_REDIS_HOST = ''
+LAN_DEV_REDIS_HOST = ''                                   # Redis
 LAN_DEV_REDIS_PORT = ''
-LAN_DEV_REDIS_PROBER_IDENT_PREFIX = 'LANDEV_DEFAULT'
-
-LAN_DEV_LIVENESS_TRACK_INTERVAL = 5
-LAN_DEV_LIVENESS_PROBE_TIMEOUT = 10
-LAN_DEV_LIVENESS_PROBE_INTERVAL = 30
-LAN_DEV_INTERFACE = 'wlp3s0'
+LAN_DEV_REDIS_PROBER_IDENT_PREFIX = 'LANDEV_DEFAULT'      # Redis key前缀，用于区分应用
+LAN_DEV_LIVENESS_TRACK_INTERVAL = 5                       # 进行设备存活测试的时间间隔
+LAN_DEV_LIVENESS_PROBE_TIMEOUT = 5                        # 进行设备发现超时时间
+                                                          # 若设备在此时间内无响应，则判断
+                                                          # 设备不存在
+LAN_DEV_LIVENESS_PROBE_INTERVAL = 30                      # 进行设备发现的时间间隔
+LAN_DEV_INTERFACE = 'wlp3s0'                              # 进行设备感知的接口名称

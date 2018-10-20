@@ -26,7 +26,7 @@ VARS=(
     'SECRET_KEY_FILE_MODE,True,Public,600'
     'PUBLIC_KEY_FILE,True,Public,/etc/StarSSO/jwt.pub'
     'PUBLIC_KEY_MODE,True,Public,666'
-    'SALT_FILE,True,Public,starstudio.salt'
+    'SALT_FILE,True,Public,/etc/StarSSO/starstudio.salt'
     'SALT_FILE_MODE,True,Public,600'
     'AUTH_TOKEN_EXPIRE_DEFAULT,True,Public,86400'
     'APP_TOKEN_EXPIRE_DEFAULT,True,Public,86400'          
