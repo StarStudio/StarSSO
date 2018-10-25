@@ -8,6 +8,7 @@
   - [登录](#登录)
   - [退出](#退出)
   - [API 认证](#API认证)
+  - [JWT 格式](#JWT格式)
   - [Token 合法性校验](#Token合法性校验)
 - [设备绑定接口](#设备绑定)
   - [查看目前的设备信息（Draft）](#查看目前的设备信息（Draft）)
@@ -102,7 +103,7 @@
 
   - 请求路径：http://\<服务器名\>/sso/login?appid=<应用ID>
 
-  - 请求方法：GET 或 GET
+  - 请求方法：GET 或 PUSH
 
   - 认证方式：表单认证，[见上](#登录)
 
@@ -166,7 +167,7 @@
 
 #### 退出
 
-- 请求路径：http://\<服务器名\>/sso/logout?redirectURL=<重定向URL>
+- 请求路径：http://\(服务器名)/sso/logout?redirectURL=<重定向URL>
 
 - 请求方法：GET
 
@@ -190,9 +191,22 @@
   You are not logined.
   ```
 
+#### JWT格式
+
+- Header 格式
+
+```json
+{
+  "alg": "RS256",
+  "typ": "JWT"
+}
+```
+
+- Payload 格式
+
+- 
+
 #### Token合法性校验
-
-
 
 ---
 
@@ -361,7 +375,7 @@
 
 - 请求路径：http://(服务器名)/v1/star/mine/<设备MAC>
 
-- 请求方法：GET
+- 请求方法：DELETE
 
 - 是否需要附带 Token：是
 
