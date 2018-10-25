@@ -2,16 +2,18 @@
 
 ### 目录
 
-- [API结果返回格式](#API结果返回格式)
+- [API结果返回格式](#api结果返回格式)
   - [状态码含义](#参考下列code状态码意义)
 - [认证接口](#认证)
   - [登录](#登录)
   - [退出](#退出)
-  - [API 认证](#API认证)
-  - [JWT 格式](#JWT格式)
-  - [Token 合法性校验](#Token合法性校验)
+  - [API 认证](#api认证)
+  - [JWT 格式](#jwt格式)
+  - [Token 合法性校验](#token合法性校验)
+    - [使用发布的公钥进行校验](#使用发布的公钥进行校验)
+    - [使用校验接口](#使用校验接口)
 - [设备绑定接口](#设备绑定)
-  - [查看目前的设备信息（Draft）](#查看目前的设备信息（Draft）)
+  - [查看目前的设备信息（Draft）](#查看目前的设备信息draft)
   - [查看当前用户已绑定的设备信息](#查看当前用户已绑定的设备信息)
   - [绑定当前设备](#绑定当前设备)
   - [当前在线设备的列表](#当前在线设备的列表)
@@ -204,9 +206,60 @@
 
 - Payload 格式
 
-- 
+  示例
 
-#### Token合法性校验
+  ```json
+  {
+    "exp": 1540556305, // 过期
+    "iat": 1540469905, // 发布时间
+    "jti": "78e52a80cdbe483eb857c35cec28e9f4", // Token ID
+    "usage": "application", // Token 类型（另有 auth 类型）
+    "user_id": 1, // User ID
+    "username": "Admin", // 用户名
+    "verbs": [ // 权限字
+      "read_self",
+      "write_internal",
+      "read_group",
+      "read_other",
+      "alter_group",
+      "write_self",
+      "write_group",
+      "read_internal",
+      "write_other",
+      "auth"
+    ]
+  }
+  ```
+
+- Verify Signature
+
+  遵循 JWT 的 RS256 签名方法
+
+---
+
+### Token合法性校验
+
+#### 使用发布的公钥进行校验
+
+可以访问以下接口获取校验所使用的公钥，PEM 格式。
+
+- 请求路径：http://(服务器名)/v1/star/device/myself
+- 请求方法：GET
+- 是否需要附带 Token：否
+
+- 返回示例：
+
+  ```json
+  {"code":0,"data":{
+      "pem":"-----BEGIN PUBLIC KEY-----\nMIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDCz2C1VEIgsccXTd8tF0Z/+v6/\n4AoxOVZZsszGrsaqiq1TZQt0lJatG0n2PigguIHKbfRKOd995Io9LaDLJDputHqf\n2/jvnhQTFCItRVTw6lxBHzbqTzpq53LAuu/A0+IAsxC7psmyIOU3GAz8iT/tRu20\nNihqu6A5huC+NfiW/wIDAQAB\n-----END PUBLIC KEY-----\n"
+  },"msg":"succeed."}
+  
+  ```
+
+
+#### 使用校验接口
+
+暂时鸽了。
 
 ---
 
