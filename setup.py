@@ -12,8 +12,7 @@ setup(
     #, packages = find_packages(exclude=['LANDevice', 'LANDevice.*'])
     , packages = [
         'StarMember'
-        , 'StarMember.*'
-    ]
+    ] + [ 'StarMember.' + sub_pack for sub_pack in find_packages(where = 'StarMember')]
     , install_requires = load_requirements()
     , data_files = [
         'requirements.txt'

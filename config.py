@@ -51,7 +51,7 @@ SSO_WEB_REDIRECT_PREFIX = 'http://sso.local.com/'  # 内部 SSO 管理面板登�
 #   CheckBot service.
 #
 LAN_DEV_REDIS_HOST = ''                                   # Redis
-LAN_DEV_REDIS_PORT = ''
+LAN_DEV_REDIS_PORT = 6379
 LAN_DEV_REDIS_PROBER_IDENT_PREFIX = 'LANDEV_DEFAULT'      # Redis key前缀，用于区分应用
 LAN_DEV_LIVENESS_TRACK_INTERVAL = 5                       # 进行设备存活测试的时间间隔
 LAN_DEV_LIVENESS_PROBE_TIMEOUT = 5                        # 进行设备发现超时时间
