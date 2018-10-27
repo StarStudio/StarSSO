@@ -180,6 +180,9 @@ def init_admin_account():
     try:
         c.execute('delete from auth where username=\'Admin\'')
         c.execute('delete from group_members where uid=1')
+        c.execute('delete from check_status where uid=1')
+        c.execute('delete from record where uid=1')
+        c.execute('delete from device_bind where uid=1')
         c.execute('delete from user where id=1')
         affected = c.execute('insert into user(id, name, sex, address, tel, mail, access_verbs) values (1, \'Administrator\', \'Unknown\', \'\', \'\', \'\', %s)', (' '.join(ADMIN_VERBS)))
         uid = c.lastrowid
