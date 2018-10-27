@@ -5,7 +5,7 @@ from datetime import datetime
 from flask import current_app, jsonify, request, make_response, Response
 from flask.views import MethodView
 from traceback import print_exc, format_exc
-from .utils import decode_token
+from .utils import decode_token, get_request_params
 from functools import wraps
 
 
@@ -120,8 +120,9 @@ class SignAPIView(MethodView):
             log_info['method'] = request.environ['REQUEST_METHOD']
             log_info['uri'] = request.environ['PATH_INFO']
             log_info['time'] = str(datetime.now())
-            if len(request.form) > 0:
-                log_info['form'] = request.form.copy()
+            request_data = get_request_params()
+            if request_data:
+                log_info['request_data'] = request_data
 
             result =  super().dispatch_request(*arg, **kwarg)
             log_info['result'] = json.loads(result.data.decode())

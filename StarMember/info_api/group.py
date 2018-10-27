@@ -1,17 +1,20 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.views import SignAPIView, resource_access_denied, with_application_token
+from StarMember.utils import get_request_params
 import uuid
+import ipdb
 
 class GroupAPIView(SignAPIView):
     methods = ['POST', 'DELETE', 'GET']
 
     @with_application_token(deny_unauthorization = True)
     def post(self):
+        ipdb.set_trace()
         if 'alter_group' not in request.app_verbs:
             return resource_access_denied()
-            
-        post_data = request.form.copy()
+
+        post_data = get_request_params()   
         type_checker = post_data_type_checker(name = str, desp = str)
         key_checker = post_data_key_checker('name', 'desp')
 
@@ -61,7 +64,7 @@ class GroupAPIView(SignAPIView):
         if 'alter_group' not in request.app_verbs:
             return resource_access_denied()
 
-        post_data = request.form.copy()
+        post_data = get_request_params()
         key_checker = post_data_key_checker('gid')
         type_checker = post_data_type_checker(gid = str)
 
@@ -127,7 +130,7 @@ class GroupAPIView(SignAPIView):
             if 'read_group' not in request.app_verbs:
                 return resource_access_denied()
 
-        post_data = request.form.copy()
+        post_data = get_request_params()
         key_checker = post_data_key_checker()
         ok, err_msg = key_checker(post_data)
         if not ok:

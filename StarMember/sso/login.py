@@ -1,13 +1,14 @@
 import os
 import uuid
 import werkzeug
+import json
 
 from traceback import format_exc
 from flask import Blueprint, current_app, make_response, request, abort, jsonify, redirect
 from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.utils import password_hash
-from StarMember.utils import new_encoded_token, decode_token
+from StarMember.utils import new_encoded_token, decode_token, get_request_params
 from StarMember.views import require_login, param_error
 from base64 import b64decode
 from datetime import datetime, timedelta
@@ -17,7 +18,7 @@ class LoginView(MethodView):
     method = ['POST', 'GET']
 
     def form_auth(self):
-        form = request.form.copy()
+        form = get_request_params()
         type_checker = post_data_type_checker(username = str, password = str)
         key_checker = post_data_key_checker('username', 'password')
         ok, err_msg = key_checker(form)

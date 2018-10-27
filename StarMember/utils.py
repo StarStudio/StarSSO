@@ -17,6 +17,9 @@ RE_MAC_PATTEN = re.compile('^(?:[0-9a-fA-F]{2}:){5}(?:[0-9a-fA-F]{2})$')
 ACCEPTABLE_TOKEN_TYPES = frozenset(['auth', 'application'])
 
 def get_real_remote_address():
+    '''
+        Get real remote IP according to HTTP Header
+    '''
     forward_chain = request.headers.get('X-Forwarded-For', None)
     if forward_chain is None:
         ipv4_int = -1
@@ -29,8 +32,26 @@ def get_real_remote_address():
 
     return last
     
-    
+def get_request_params():
+    '''
+        Get request param dict.
+    '''
+    post_data = request.get_data(as_text = True)
+    post_json = None
+    try:
+        post_json = json.loads(post_data)
+    except json.JSONDecodeError as e:
+        pass
 
+    if post_json:
+        return post_json
+
+    if '' != request.get_data(as_text = True, parse_form_data = True):
+        return None
+
+    return request.form.copy()
+
+    
 def password_hash(_password):
     '''
         Hash password according to preloaded salt.

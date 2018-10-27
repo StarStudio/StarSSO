@@ -1,7 +1,7 @@
 from flask import request, current_app, jsonify, abort
 from StarMember.views import SignAPIView, with_application_token, resource_access_denied, api_succeed, api_user_pending, api_wrong_params
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.utils import MACToInt, IntToMAC
+from StarMember.utils import MACToInt, IntToMAC, get_request_params
 from pymysql.err import IntegrityError
 
 class BindView(SignAPIView):
@@ -9,8 +9,7 @@ class BindView(SignAPIView):
 
     @with_application_token(deny_unauthorization = True)
     def get(self):
-
-        post_data = request.form.copy()
+        post_data = get_request_params()
         type_checker = post_data_type_checker(uid = int, gid = int)
         ok, err_msg = type_checker(post_data)
         if not ok:
@@ -115,7 +114,7 @@ class BindView(SignAPIView):
 
     @with_application_token(deny_unauthorization = True)
     def post(self):
-        post_data = request.form.copy()
+        post_data = get_request_params()
         type_checker = post_data_type_checker(mac = str)
         key_checker = post_data_key_checker('mac')
         ok, msg = type_checker(post_data)

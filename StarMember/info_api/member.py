@@ -1,7 +1,7 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.views import SignAPIView, resource_access_denied, with_application_token
-from StarMember.utils import password_hash
+from StarMember.utils import password_hash, get_request_params
 from datetime import datetime
 import uuid
 
@@ -133,8 +133,7 @@ class MemberAccessView(SignAPIView):
         elif 'write_self' in request.app_verbs:
             return resource_access_deined()
         
-        
-        post_data = request.form.copy()
+        post_data = get_request_params()
         if len(post_data) < 1:
             return jsonify({'code': 0, 'msg': 'success', 'data': ''})
 
@@ -200,7 +199,7 @@ class MemberAPIView(SignAPIView):
 
     @with_application_token(deny_unauthorization = True)
     def get(self):
-        post_data = request.form.copy() 
+        post_data = get_request_params()
         type_checker = post_data_type_checker(uid = int, gid = int)
         ok, err_msg = type_checker(post_data)
         if not ok:
@@ -274,7 +273,7 @@ class MemberAPIView(SignAPIView):
 
     @with_application_token(deny_unauthorization = False)
     def post(self):
-        post_data = request.form.copy()
+        post_data = get_request_params()
 
         type_checker = post_data_type_checker(username = str, password = str, birthday = str, name = str, gid = int, sex = str, tel = str, mail = str, address = str)
         key_checker = post_data_key_checker('username', 'password', 'name', 'gid', 'sex', 'tel', 'mail', 'birthday', 'address')
@@ -373,7 +372,7 @@ class MemberAPIView(SignAPIView):
 
     @with_application_token(deny_unauthorization = True)
     def delete(self):
-        post_data = request.form.copy()
+        post_data = get_request_params()
         #type_checker = post_data_type_checker(name = str, uid = str)
         #key_checker = post_data_key_checker(('name', 'uid'))
         type_checker = post_data_type_checker(uid = str)
