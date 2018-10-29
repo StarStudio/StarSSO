@@ -3,7 +3,6 @@ from flask import Response, request, current_app
 import logging
 import uuid
 
-import ipdb
 #def collect_post_data_from_form_and_queries(_view_function):
 #    @wraps(_view_function)
 #    def check_wrapper(*args, **kwargs):
@@ -115,7 +114,6 @@ def post_data_key_checker(*keys):
             raise ValueError('Invalid type.')
 
     def key_checker(post_data):
-        ipdb.set_trace()
         for name in keys:
             found = None
             if isinstance(name, (tuple, list)): # More then one alternate
