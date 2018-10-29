@@ -3,6 +3,7 @@ from flask import Response, request, current_app
 import logging
 import uuid
 
+import ipdb
 #def collect_post_data_from_form_and_queries(_view_function):
 #    @wraps(_view_function)
 #    def check_wrapper(*args, **kwargs):
@@ -33,39 +34,72 @@ def post_data_type_checker(**_types):
             if not name in post_data:
                 continue
 
-            values = post_data[name]
-            for i in range(0, len(values)):
-                # Check whether current type is acceptable.
-                accepted = None
-                if isinstance(types, type):
-                    if types is values[i].__class__:
-                        accepted = types
-                else:
-                    for _type in types:
-                        if _type is values[i].__class__:
-                            accepted = _type
+            value = post_data[name]
+            # Check whether current type is acceptable.
+            accepted = None
+            if isinstance(types, type):
+                if types is value.__class__:
+                    accepted = types
+            else:
+                for _type in types:
+                    if _type is value.__class__:
+                        accepted = _type
 
-                # If current type is unacceptable, try to convert it.
-                if accepted is None:
-                    converted = None 
-                    try:
-                        if isinstance(types, type):
-                            converted = types(values[i])
-                        else:
-                            for _type in types:
-                                converted = _type(values[i])
-                    except Exception as e:
-                        continue
-
-                    if converted is not None:
-                        #values[i] = converted
-                        #post_data[name] = values
-                        post_data[name] = converted
-                        break
+            # If current type is unacceptable, try to convert it.
+            if accepted is None:
+                converted = None 
+                try:
+                    if isinstance(types, type):
+                        converted = types(value)
                     else:
-                        # If value cannot be converted, deny this request.
-                        #return jsonify({'code':1422, 'msg' : '%s is invalid' % name, data : ''})                   
-                        return False, "%s has invalid type." % name
+                        for _type in types:
+                            converted = _type(value)
+                except Exception as e:
+                    continue
+
+                if converted is not None:
+                    #values[i] = converted
+                    #post_data[name] = values
+                    post_data[name] = converted
+                    break
+                else:
+                    # If value cannot be converted, deny this request.
+                    #return jsonify({'code':1422, 'msg' : '%s is invalid' % name, data : ''})                   
+                    return False, "%s has invalid type." % name
+
+            #values = post_data[name]
+            #for i in range(0, len(values)):
+            #    # Check whether current type is acceptable.
+            #    accepted = None
+            #    if isinstance(types, type):
+            #        if types is values[i].__class__:
+            #            accepted = types
+            #    else:
+            #        for _type in types:
+            #            if _type is values[i].__class__:
+            #                accepted = _type
+
+            #    # If current type is unacceptable, try to convert it.
+            #    if accepted is None:
+            #        converted = None 
+            #        try:
+            #            if isinstance(types, type):
+            #                converted = types(values[i])
+            #            else:
+            #                for _type in types:
+            #                    converted = _type(values[i])
+            #        except Exception as e:
+            #            continue
+
+            #        if converted is not None:
+            #            #values[i] = converted
+            #            #post_data[name] = values
+            #            post_data[name] = converted
+            #            break
+            #        else:
+            #            # If value cannot be converted, deny this request.
+            #            #return jsonify({'code':1422, 'msg' : '%s is invalid' % name, data : ''})                   
+            #            return False, "%s has invalid type." % name
         return True, ""        
     return type_checker
          
@@ -81,6 +115,7 @@ def post_data_key_checker(*keys):
             raise ValueError('Invalid type.')
 
     def key_checker(post_data):
+        ipdb.set_trace()
         for name in keys:
             found = None
             if isinstance(name, (tuple, list)): # More then one alternate

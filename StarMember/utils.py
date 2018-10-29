@@ -46,8 +46,8 @@ def get_request_params():
     if post_json:
         return post_json
 
-    if '' != request.get_data(as_text = True, parse_form_data = True):
-        return None
+    #if '' != request.get_data(as_text = True, parse_form_data = True):
+    #    return None
 
     return request.form.copy()
 
