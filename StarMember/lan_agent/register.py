@@ -2,11 +2,12 @@ from StarMember.views import SignAPIView, param_error, api_succeed
 from StarMember.utils import get_request_params
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from .network import Network, InvalidNetworkIDError, new_network_id
+from .token import check_register_token, verify_register_token
 
 class LANRegister(SignAPIView):
     method = ['POST']
 
-    def get(self):
+    def post(self):
         params = get_request_params()
         type_checker = post_data_type_checker(register_token = str)
         key_checker = post_data_key_checker('register_token')

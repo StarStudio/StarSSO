@@ -3,7 +3,7 @@ import uuid
 
 from flask import current_app
 
-TOKEN_RE = re.compile('[a-f0-9]')
+TOKEN_RE = re.compile('^[a-f0-9]{32}$')
 
 def token_to_redis_key(_token):
     '''
@@ -14,7 +14,8 @@ def token_to_redis_key(_token):
         :return:
             Key string.
     '''
-    return current_app.config['LAN_DEV_PREFIX'] + '_reg_token_' + _token
+    print(current_app.config['LAN_DEV_REDIS_PROBER_IDENT_PREFIX'] + '_reg_token_' + _token)
+    return current_app.config['LAN_DEV_REDIS_PROBER_IDENT_PREFIX'] + '_reg_token_' + _token
 
 def new_register_token():
     '''
@@ -50,7 +51,7 @@ def verify_register_token(_token):
         :return:
             True or False
     '''
-    if check_register_token(_token):
+    if not check_register_token(_token):
         return False
 
     exist = current_app.redis_store.get(token_to_redis_key(_token))

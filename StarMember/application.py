@@ -21,6 +21,7 @@ from base64 import b64encode, b64decode
 from .info_api import info_api
 from .devicebind import bind_api
 from .sso import sso_api
+from .lan_agent import net_api
 from .utils import password_hash
 from datetime import datetime
 
@@ -79,6 +80,7 @@ app.mysql = mysql
 app.register_blueprint(info_api)
 app.register_blueprint(sso_api)
 app.register_blueprint(bind_api)
+app.register_blueprint(net_api)
 
 
 def make_log_time_wrapper(_function): 
