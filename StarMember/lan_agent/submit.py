@@ -9,7 +9,6 @@ class LANDeviceSubmit(SignAPIView):
 
     def post(self, nid):
         params = get_request_params()
-        print(params)
         key_checker = post_data_key_checker('devices')
         ok, err_msg = key_checker(params)
         if not ok:

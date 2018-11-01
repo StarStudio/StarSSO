@@ -95,89 +95,6 @@ class LANDevicePublish:
             print_exc()
     
         
-#class LANDevicePublish:
-#    
-#    def __init__(self, _config):
-#        '''
-#            Initialize new device list publishing port.
-#        '''
-#        self._config = _config
-#        self._naked_id = str(uuid.uuid4()).replace('-', '')
-#        self._publisher_set = _config.redis_prefix + '_landev_publishers'
-#        self._publish_set = _config.redis_prefix + '_publish_' + self._naked_id
-#        self._event_listener_set = _config.redis_prefix + '_listeners' 
-#        self._redis = redis.Redis(host = _config.redis_host, port = _config.redis_port)
-#        self._init_redis_publisher_list()
-#        
-#
-#    def _init_redis_publisher_list(self):
-#        '''
-#            Initialize all redis data structure for the simple subscriber-publisher system.
-#        '''
-#        # KEYS:
-#        #   1:  publisher_set
-#        #   2:  publish_set
-#        # ARGV:
-#        #   1:  Expire time for publish_set in seconds.
-#        REDIS_INIT_LUA = '''
-#            redis.call('sadd', KEYS[1], KEYS[2])
-#            redis.call('sadd', KEYS[2], '')
-#            redis.call('expire', KEYS[2], ARGV[1])
-#            return 1
-#        '''
-#        # Empty entry to keep myself alive in pushlisher set
-#        self._redis.eval(REDIS_INIT_LUA, 2, self._publisher_set, self._publish_set, self._config.probe_interval * 2)
-#
-#        
-#    def PublishDevices(self, _devices):
-#        '''
-#            Publish new device list.
-#
-#            :params:
-#                _devices    (ip, mac) tuple pairs for devices.
-#
-#        '''
-#        devices = ['%s,%s' % (ip, mac) for ip, mac in _devices]
-#        # KEYS:
-#        #   1: publish_set 
-#        #   2: Expire time for publish_set in seconds.
-#        #   3: listener_set
-#        # ARGV:
-#        #   device information entries
-#        REDIS_UPDATE_LUA = '''
-#            redis.call('sadd', KEYS[1] .. '_new_set', unpack(ARGV))
-#            local joined = redis.call('sdiff', KEYS[1] .. '_new_set', KEYS[1])
-#            local left = redis.call('sdiff', KEYS[1], KEYS[1] .. '_new_set')
-#            redis.call('del', KEYS[1])
-#            redis.call('rename', KEYS[1] .. '_new_set', KEYS[1])
-#            redis.call('expire', KEYS[1], KEYS[2])
-#
-#            local listeners = redis.call('smembers', KEYS[3])
-#            for i = 1, #listeners, 1 do
-#                repeat 
-#                    if false == redis.call('get', listeners[i] .. '_expire') then
-#                        redis.call('srem', KEYS[3], listeners[i])
-#                        break
-#                    end
-#                    if #joined > 0 then
-#                        for i = 1, #joined, 1 do
-#                            joined[i] = 'joi|' .. joined[i]
-#                        end
-#                        redis.call('rpush', listeners[i], unpack(joined))
-#                    end
-#                    if #left > 0 then
-#                        for i = 1, #left, 1 do
-#                            left[i] = 'lef|' .. left[i]
-#                        end
-#                        redis.call('rpush', listeners[i], unpack(left))
-#                    end
-#                until true
-#            end
-#            return #ARGV
-#        '''
-#        self._redis.eval(REDIS_UPDATE_LUA, 3, self._publish_set, self._config.probe_interval * 2, self._event_listener_set, *devices)
-
-
 
 class LANDeviceProber:
 
@@ -196,10 +113,10 @@ class LANDeviceProber:
 
         self.sem = Semaphore()
         self.watched_addrs = set()
+        self.publish_local_ip = ''
         self._device_last_alive = {} # mac -> (timestamp, ip -> tracker (Weak))
         self._alive_tracker = weakref.WeakValueDictionary() # ip -> tracker
         self._tracker_info = weakref.WeakKeyDictionary() # tracker -> mac
-        
 
         self.interface = _config.interface
         if self._update_address() is None:
@@ -215,7 +132,11 @@ class LANDeviceProber:
             ifce_addrs = netifaces.ifaddresses(self.interface)
         except ValueError as e:
             return None
-        new_watched_addrs = set([(info['addr'], info['netmask']) for info in ifce_addrs[netifaces.AF_INET]]) 
+        inet_addr_info = ifce_addrs[netifaces.AF_INET]
+        new_watched_addrs = set([(info['addr'], info['netmask']) for info in inet_addr_info]) 
+        if inet_addr_info:
+            self.publish_local_ip = inet_addr_info[0]['addr']
+
         if self.watched_addrs != new_watched_addrs:
             self.sem.acquire()
             self.watched_addrs = new_watched_addrs
@@ -303,6 +224,16 @@ class LANDeviceProber:
                 self._device_last_alive[mac][0] = cur_time
             gevent.sleep(self._config.track_interval)
         print('Leave: %s' % _ip)
+
+
+    def _agent_keepalive(self):
+        '''
+            Upload local network info.
+        '''
+        resp = requests.post(self._config.network_api + '/%s' % self.publish_port.NetworkID + '/liveness', json = {
+            'local_ip': self.publish_local_ip
+        })
+        print('Keepalive : %s ' % resp.json())
         
 
     def _device_probe_procedure_lead(self):
@@ -389,6 +320,13 @@ class LANDeviceProber:
                         , max_instances = 1
                         , trigger = 'interval'
                         , seconds = self._config.probe_interval)
+
+        self.keepalive_job = self.sched.add_job(
+                        self._agent_keepalive
+                        , name = 'Keepalive.'
+                        , max_instances = 1
+                        , trigger = 'interval'
+                        , seconds = 10)
 
         self.device_probe_job.modify(next_run_time = datetime.now())
 
