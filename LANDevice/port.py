@@ -135,8 +135,8 @@ class DeviceListener:
                 if evt is None:
                     continue
                 splited = event[4:].split(',')
-                if len(splited) != 2:
+                if len(splited) != 3:
                     continue
-                ip, mac = splited
+                ip, mac, nid = splited
                 break
-        return evt, ip, mac
+        return evt, ip, mac, nid

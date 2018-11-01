@@ -1,4 +1,4 @@
 gevent
 apscheduler
-redis
 netifaces
+requests
