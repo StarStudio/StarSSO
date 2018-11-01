@@ -42,6 +42,11 @@ APP_INITIAL_ACCESS = frozenset([
     'auth', 'read_self'
 ])
 
+REDIS_HOST = 'localhost'
+REDIS_PORT = 6379
+REDIS_DB = 0
+
+# REDIS_URL = ''
 
 # Web console
 SSO_WEB_REDIRECT_PREFIX = 'http://sso.local.com/'  # 内部 SSO 管理面板登录的Redirect前缀
