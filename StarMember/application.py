@@ -12,14 +12,16 @@ import uuid
 import json
 from jwcrypto.jwk import JWK
 from jwcrypto.common import json_decode
-from flask import Flask, current_app
+from flask import Flask, current_app, make_response
 from flaskext.mysql import MySQL
+from flask_redis import FlaskRedis
 from functools import wraps
 from base64 import b64encode, b64decode
 
 from .info_api import info_api
 from .devicebind import bind_api
 from .sso import sso_api
+from .lan_agent import net_api
 from .utils import password_hash
 from datetime import datetime
 
@@ -42,11 +44,6 @@ APP_INITIAL_ACCESS_DEFAULT = frozenset([
 
 app = Flask(__name__)
 
-# Modules
-mysql = MySQL()
-mysql.init_app(app)
-app.mysql = mysql
-
 # Load configure
 if 'API_CFG' in os.environ \
     and os.path.isfile(os.environ['API_CFG']):
@@ -56,10 +53,35 @@ else:
     print('Use config.py')
     app.config.from_pyfile('config.py')
 
+# Set default redis url
+redis_url = app.config.get('REDIS_URL', None)
+if redis_url is None:
+    redis_url = 'redis://'
+    redis_host = app.config.get('REDIS_HOST', '127.0.0.1')
+    redis_port = app.config.get('REDIS_PORT', 6379)
+    if isinstance(redis_port, int):
+        redis_port = int(redis_port)
+        app.config['REDIS_PORT'] = redis_port
+    redis_db = app.config.get('REDIS_DB')
+    redis_url = 'redis://%s:%s/%s' % (redis_host, redis_port, redis_db)
+    app.config['REDIS_URL'] = redis_url
+
+# Modules
+mysql = MySQL()
+mysql.init_app(app)
+redis_storage = FlaskRedis()
+redis_storage.init_app(app)
+app.redis_store = redis_storage
+app.mysql = mysql
+
+
+
 # Blueprints
 app.register_blueprint(info_api)
 app.register_blueprint(sso_api)
 app.register_blueprint(bind_api)
+app.register_blueprint(net_api)
+
 
 def make_log_time_wrapper(_function): 
     @wraps(_function)

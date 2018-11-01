@@ -23,7 +23,7 @@ class DeviceList:
             :return:
                 A dict with MAC key and a set of IPv4 address as value.
                 {
-                    'AA:BB:CC:DD:EE:FF': set(['1.2.3.4', '5.6.7.8', ...])
+                    'AA:BB:CC:DD:EE:FF': ('af8fb2c15d3249c5b5d9dd9e7e48f51e' ,set(['1.2.3.4', '5.6.7.8', ...]))
                     , ...
                 }
         '''
@@ -58,17 +58,18 @@ class DeviceList:
         '''
         devices = {}
         publish_list = self._redis.eval(REDIS_GET_LUA, 1, self._config.redis_prefix + '_landev_publishers')
+        print(publish_list)
         for raw_item in publish_list:
             splited = raw_item.decode('ascii').split(',')
-            if len(splited) != 2:
+            if len(splited) != 3:
                 print('Wrong publish format: %s' % raw_item)
                 continue
-            ip, mac = splited
+            ip, mac, nid = splited
             if mac not in devices:
                 ip_set = set()
-                devices[mac] = ip_set
+                devices[mac] = (nid, ip_set)
             else:
-                ip_set = devices[mac]
+                _, ip_set = devices[mac]
             ip_set.add(ip)
 
         return devices
@@ -134,8 +135,8 @@ class DeviceListener:
                 if evt is None:
                     continue
                 splited = event[4:].split(',')
-                if len(splited) != 2:
+                if len(splited) != 3:
                     continue
-                ip, mac = splited
+                ip, mac, nid = splited
                 break
-        return evt, ip, mac
+        return evt, ip, mac, nid
