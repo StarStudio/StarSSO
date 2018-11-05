@@ -1,5 +1,0 @@
-#! /bin/python
-
-from StarMember.cli import RunCommand
-
-RunCommand()
