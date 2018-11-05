@@ -1,8 +1,8 @@
 from StarMember.views import SignAPIView, param_error, api_succeed
-from StarMember.utils import get_request_params
+from StarMember.utils.param import get_request_params
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from .network import Network, InvalidNetworkIDError, new_network_id
-from .token import check_register_token, verify_register_token
+from StarMember.utils.network import Network, InvalidNetworkIDError, new_network_id
+from StarMember.utils.lan_register_token import check_register_token, verify_register_token
 
 class LANRegister(SignAPIView):
     method = ['POST']

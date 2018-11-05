@@ -1,12 +1,18 @@
 import uuid
 import json
+import requests
 
 from datetime import datetime
-from flask import current_app, jsonify, request, make_response, Response
+from flask import current_app, jsonify, request, make_response, Response, redirect
 from flask.views import MethodView
+from werkzeug.urls import url_encode
 from traceback import print_exc, format_exc
-from .utils import decode_token, get_request_params
+from .utils.param import get_request_params
+from .utils.security import decode_token, ProxyToken
+from .utils.device import get_real_remote_address
+from .utils.network import Network
 from functools import wraps
+from struct import pack, unpack
 
 
 def resource_access_denied():
@@ -28,37 +34,6 @@ def api_user_pending(_data = ''):
 
 def api_wrong_params(_error = ''):
     return jsonify({'code': 1422, 'msg': _error, 'data': ''})
-
-#def with_access_verbs(*need_verbs):
-#    combined_needs = []
-#    single_needs = []
-#    for needs in need_verbs:
-#        if isinstance(needs, (tuple, list)):
-#            combined_needs.append(needs)
-#        else:
-#            single_needs.append(needs)
-#
-#    combined_needs = tuple(combined_needs)
-#    single_needs = tuple(single_needs)
-#            
-#    def decorate(_function):
-#        @wraps(_function)
-#        def decorated(*args, **kwargs):
-#            app_verbs = request.app_verbs
-#            for verb in single_needs:
-#                if verb not in app_verbs:
-#                    return resouce_access_denied()
-#            for verbs in combined_needs:
-#                satisfied = False
-#                for verb in verbs:
-#                    if verb in app_verbs:
-#                        satisfied = True
-#                        break
-#                if not satisfied:
-#                    return resource_access_denied()
-#            return _function(*args, **kwargs)
-#        return decorated
-#    return decorate
 
 def try_http_bearer_auth():
     auth_header = request.headers.get('Authorization', None)
@@ -110,6 +85,101 @@ def with_application_token(deny_unauthorization = True):
             return _function(*args, **kwargs)
         return decorated
     return decorate
+
+
+def with_device_information(deny_illegal_device = True, _proxy_ident_args_name = 'pagent', _proxy_token_args_name = 'ptoken'):
+    def encapsulate_data(_addition, _origin):
+        return pack('Lss', len(_origin), _origin, _addition)
+
+    def unencapsulate_data(_raw):
+        origin_len = unpack('L', _raw[0:4])
+        if origin_len > len(_raw) - 4:
+            return None, None, 'Check not passed.'
+        return _raw[4: 4 + origin_len], _raw[4 + origin_len:], None
+
+    def as_apiserver(_function, *args, **kwargs):
+        remote_addr = get_real_remote_address()
+        net = None
+        if remote_addr != '':
+            net = Network.FromIP(remote_addr)
+        else:
+            if deny_illegal_device:
+                return resource_access_denied()
+            return None
+
+        # Device doesn't belong to any registered local network.
+        if net is None:
+            if deny_illegal_device:
+                return resource_access_denied()
+            else:
+                return None
+        # Set device information property for view func.
+        request.from_net = net
+
+        # Check whether a proxied request.
+        proxyed = request.args.get(_proxy_ident_args_name, None)
+        if proxyed is not None: # proxied.
+            if proxyed != 1:
+                abort(400)
+            addition, origin, msg = unencapsulate_data(request.data)
+            if msg is not None:
+                return param_error('Proxy data corrupted: %s' % msg)
+            request.data = origin # Restore data.
+            return _function(*args, **kwargs)
+
+        # Redirect: require request by local agent.
+        redir_token = ProxyToken(_nid = Network.LocalAgentIP).make_signed_token()
+        new_args = request.args.copy()
+        new_args[_proxy_token_args_name] = redir_token
+        new_args[_proxy_ident_args_name] = request.url_root # Proxy to
+        redir_url = 'http://' + net.PublishIP + request.environ['PATH_INFO'] + '?' + url_encode(new_args)
+
+        return redirect(redir_url)
+        
+
+    def as_agent(_function, *args, **kwargs):
+        remote_addr = get_real_remote_address()
+        if remote_addr == '':
+            return resource_access_denied()
+
+        token = request.args.get(_proxy_token_args_name, None)
+        if token is None:
+            return param_error('Proxy token missing.')
+        proxy_to = request.args.get(_proxy_ident_args_name, None)
+        if token is None:
+            return param_error('Proxy-to URL root missing.')
+
+        proxy_metadata = json.dumps({
+            'token': token
+            , 'proxy_for': remote_addr
+        })
+        enp_data = encapsulate_data(proxy_metadata, request.data)
+        ori_args = request.args.copy()
+        
+        queries = url_encode({
+            _proxy_ident_args_name: 1
+        })
+        url = proxy_to + request.environ['PATH_INFO'] + '?' + url_encode({ _proxy_ident_args_name: 1})
+        req = requests.Request(request.environ['REQUEST_METHOD'], headers = request.headers, data = enp_data)
+        resp = requests.Session().send(req)
+        headers = resp.headers.copy()
+        headers['Access-Control-Allow-Credentials'] = True
+        headers['Access-Control-Allow-Origin'] = proxy_to
+        return make_response((resp.content, resp.status_code, resp.headers))
+
+
+    def decorate(_function):
+        @warps(_function)
+        def decorated(*args, **kwargs):
+            server_mode = current_app.config['SERVER_MODE']
+            if server_mode == 'APIServer':
+                return as_apiserver(_function, *args, **kwargs)
+            elif server_mode == 'Agent':
+                return as_agent(_function, *args, **kwargs)
+            else:
+                return RuntimeError('Unknown Server Mode. Check configure please.')
+            
+            
 
 
 class SignAPIView(MethodView):

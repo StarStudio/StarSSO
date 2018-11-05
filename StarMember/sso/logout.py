@@ -4,7 +4,7 @@ from flask import current_app, request, make_response
 from flask.views import MethodView
 from traceback import format_exc
 from StarMember.aspect import post_data_type_checker
-from StarMember.utils import decode_token
+from StarMember.utils.security import decode_token
 
 
 class LogoutView(MethodView):

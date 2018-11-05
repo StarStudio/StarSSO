@@ -1,5 +1,7 @@
 import re
 import uuid
+
+from LANDevice.utils import IPv4ToInt
 from flask import current_app
 
 ID_FMT_RE = re.compile('^[a-f0-9]{32}$')
@@ -13,6 +15,28 @@ class InvalidNetworkIDError(Exception):
 
 
 class Network:
+
+    @staticmethod
+    def FromIP(_ip, _redis_storage_getter = lazy_redis_store_getter):
+        '''
+            Find the Network the that IP belong to.
+
+            :params:
+                _ip         IP.
+
+            :return:
+                return Network instance if Network of the IP is known.
+                Otherwise, return None.
+        '''
+        redis_storage = _redis_storage_getter()
+        if redis_storage is None:
+            raise RuntimeError('Cannot access to redis.')
+        nid = self._redis.get(_ip.replace('.', '_'))
+        if nid is None or not check_network_id(nid):
+            return None
+        return Network(nid)
+     
+   
     def __init__(self, _id, _register = False, _redis_getter = lazy_redis_store_getter):
         '''
             Open Network for information.
@@ -44,11 +68,16 @@ class Network:
 
     @PublishIP.setter
     def PublishIP(self, _ip):
-        return self._redis.hset(self._redis_info_key, 'NetworkPublishIP', _ip)
+        self._redis.hset(self._redis_info_key, 'NetworkPublishIP', _ip)
+        self._redis.set(self._redis_gateway_map_prefix + '_' + _ip.replace('.', '_'), self._id)
 
     @property
     def _redis_info_key(self):
         return current_app.config['LAN_DEV_REDIS_PROBER_IDENT_PREFIX'] + '_local_network_' + self._id + '_info'
+
+    @property
+    def _redis_gateway_map_prefix(self):
+        return current_app.config['LAN_DEV_REDIS_PROBER_IDENT_PREFIX'] + '_gateway_map'
 
     @property
     def _redis_publish_set_key(self):
@@ -189,3 +218,24 @@ def check_network_id(_id):
             True or False
     '''
     return ID_FMT_RE.match(_id) is not None
+
+
+RE_MAC_PATTEN = re.compile('^(?:[0-9a-fA-F]{2}:){5}(?:[0-9a-fA-F]{2})$')
+
+def MACToInt(_mac):
+    '''
+        Convert MAC address to int
+    '''
+    if not RE_MAC_PATTEN.match(_mac):
+        raise ValueError('Invalid MAC format.')
+
+    return int(_mac.replace(':', ''), 16)
+
+def IntToMAC(_mac):
+    '''
+        Convert int to MAC address
+    '''
+    if _mac > 0xFFFFFFFFFFFF:
+        return ValueError('MAC integer is too big.')
+    digits = list('%012x' % _mac)
+    return ':'.join([digits[i] + digits[i+1] for i in range(0, len(digits), 2)])

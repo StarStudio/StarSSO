@@ -3,6 +3,8 @@ from .login import LoginView
 from .logout import LogoutView
 from .key import PublicKeyView
 
+import ipdb
+
 sso_api = Blueprint('Single Sign-on', __name__, url_prefix = '/sso')
 
 sso_api.add_url_rule('/login', view_func=LoginView.as_view('SSOLogin'))
@@ -11,4 +13,5 @@ sso_api.add_url_rule('/publickey', view_func=PublicKeyView.as_view('SSOPublicKey
 
 @sso_api.route('/', methods=['GET'])
 def hello_sso():
+    ipdb.set_trace()
     return "Starstudio SSO."

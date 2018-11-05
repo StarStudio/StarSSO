@@ -1,7 +1,7 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.views import SignAPIView, resource_access_denied, with_application_token
-from StarMember.utils import get_request_params
+from StarMember.utils.param import get_request_params
 import uuid
 
 class GroupAPIView(SignAPIView):

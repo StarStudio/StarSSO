@@ -1,6 +1,6 @@
 from flask import request, current_app, jsonify
 from StarMember.views import SignAPIView
-from StarMember.utils import get_real_remote_address
+from StarMember.utils.device import get_real_remote_address
 
 class MyselfDeviceView(SignAPIView):
     method = ['GET']

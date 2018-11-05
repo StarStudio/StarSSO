@@ -1,7 +1,8 @@
 from flask import request, current_app, jsonify, abort
 from StarMember.views import SignAPIView, with_application_token, resource_access_denied, api_succeed, api_user_pending, api_wrong_params
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.utils import MACToInt, IntToMAC, get_request_params
+from StarMember.utils.network import MACToInt, IntToMAC
+from StarMember.utils.param import get_request_params
 from pymysql.err import IntegrityError
 
 class BindView(SignAPIView):

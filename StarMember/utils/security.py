@@ -1,55 +1,19 @@
 import hashlib
 import uuid
 import json
-import re
 
+from flask import current_app
 from base64 import b64encode
-from flask import current_app, request
-from datetime import datetime
+from datetime import datetime, timedelta
 from jwcrypto.jwt import JWT, JWTExpired
 from jwcrypto.jws import InvalidJWSSignature
 from jwcrypto.common import json_decode
-from LANDevice.utils import IPv4ToInt
 
-
-RE_MAC_PATTEN = re.compile('^(?:[0-9a-fA-F]{2}:){5}(?:[0-9a-fA-F]{2})$')
 
 ACCEPTABLE_TOKEN_TYPES = frozenset(['auth', 'application'])
 
-def get_real_remote_address():
-    '''
-        Get real remote IP according to HTTP Header
-    '''
-    forward_chain = request.headers.get('X-Forwarded-For', None)
-    if forward_chain is None:
-        ipv4_int = -1
-    else:
-        last = forward_chain.split(',')[-1].strip()
-        ipv4_int = IPv4ToInt(last)
-
-    if ipv4_int < 0:
-        return request.remote_addr
-
-    return last
-    
-def get_request_params():
-    '''
-        Get request param dict.
-    '''
-    post_data = request.get_data(as_text = True)
-    post_json = None
-    try:
-        post_json = json.loads(post_data)
-    except json.JSONDecodeError as e:
-        pass
-
-    if post_json:
-        return post_json
-
-    #if '' != request.get_data(as_text = True, parse_form_data = True):
-    #    return None
-
-    return request.form.copy()
+def flask_jwt_key_getter():
+    return current_app.jwt_key
 
     
 def password_hash(_password):
@@ -67,6 +31,87 @@ def password_hash(_password):
     return b64encode(salted.digest()).decode('utf-8')
 
 
+class InvalidAPITokenType(Exception):
+    pass
+
+class DuplicatedTokenType(Exception):
+    pass
+
+
+class APIToken(JWT):
+    ACCEPTABLE_TOKEN_TYPES = frozenset(['auth', 'application'])
+
+    TOKEN_CLASS_REGISTRY = {}
+
+    @staticmethod
+    def RegisterAPITokenClass(_class):
+        if _class.REGISTER_CLASS_NAME in APIToken.TOKEN_CLASS_REGISTRY:
+            raise DuplicatedTokenType('API Token Class %s already exists.' % _name)
+        APIToken.TOKEN_CLASS_REGISTRY[_class.REGISTER_CLASS_NAME] = _class
+
+
+    def __init__(self, _token_type, _key_getter = flask_jwt_key_getter, *args, **kwargs):
+        if _token_type not in ACCEPTABLE_TOKEN_TYPES:
+            raise InvalidAPITokenType('Unsupported API Token type: ' % _token_type)
+        self._key_getter = _key_getter
+        self._token_type = _token_type
+        self._token_id = str(uuid.uuid4()).replace('-', '')
+        super().__init__(*args, **kwargs)
+
+
+    @property
+    def IssueAt(self):
+        if 'iat' not in self._claims\
+            or isinstance(self._claims['iat'], int):
+            return None
+        return datetime.fromtimestmp(self._claims['iat'])
+
+
+    def SetDefaultClaims(self):
+        if 'iat' not in self._claims \
+            or not isinstance(self._claims['iat'], int):
+            self._claims['iat'] = int(datetime.now().timestamp())
+        self._claims['usage'] = self._token_type
+        self._claims['jti'] = self._token_id
+
+        
+    def make_signed_token(self):
+        self.SetDefaultClaims()
+        return super().make_signed_token(self._key_getter())
+
+
+
+class ProxyToken(APIToken):
+    REGISTER_CLASS_NAME = 'proxy'
+
+    def __init__(self, _nid, _avaliable_period = 10, _request_id = None, *args, **kwargs):
+        self._avaliable_period = _avaliable_period
+        if not isinstance(request_id, str):
+            self._request_id = _request_id
+        else:
+            self._request_id = str(uuid.uuid4()).replace('-', '')
+        self.nid = _nid
+        super().__init__(_token_type = ProxyToken.REGISTER_CLASS_NAME, *arg, **kwargs)
+
+
+    def SetDefaultClaims(self):
+        super().SetDefaultClaims()
+        self._claims['exp'] = ((self.IssueAt + timedelta(seconds = self._avaliable_period)).timestamp())
+
+
+APIToken.RegisterAPITokenClass(ProxyToken)
+
+
+
+def new_token(_json = {}, _key_getter = flask_jwt_key_getter, _available_period = None):
+    '''
+        Create an new Json Web Token with specified data.
+
+        :params:
+            _json               JSON-Serializable python object.
+            _available_period   Avaliable period in seconds.
+    '''
+    
 
 def new_encoded_token(_user, _user_id, _application_verbs, _user_verb, _token_type = 'auth', _not_before = None, _expire = None):
     '''
@@ -150,20 +195,3 @@ def decode_token(_encoded_token):
         return False, None, None, None, None, None
 
 
-def MACToInt(_mac):
-    '''
-        Convert MAC address to int
-    '''
-    if not RE_MAC_PATTEN.match(_mac):
-        raise ValueError('Invalid MAC format.')
-
-    return int(_mac.replace(':', ''), 16)
-
-def IntToMAC(_mac):
-    '''
-        Convert int to MAC address
-    '''
-    if _mac > 0xFFFFFFFFFFFF:
-        return ValueError('MAC integer is too big.')
-    digits = list('%012x' % _mac)
-    return ':'.join([digits[i] + digits[i+1] for i in range(0, len(digits), 2)])

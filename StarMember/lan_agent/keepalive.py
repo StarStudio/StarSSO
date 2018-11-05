@@ -1,7 +1,8 @@
 from StarMember.views import SignAPIView, param_error, api_succeed
-from StarMember.utils import get_request_params, get_real_remote_address
+from StarMember.utils.param import get_request_params
+from StarMember.utils.device import get_real_remote_address
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from .network import Network, InvalidNetworkIDError
+from StarMember.utils.network import Network, InvalidNetworkIDError
 from flask import request, current_app
 
 class LANKeepalive(SignAPIView):

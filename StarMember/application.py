@@ -22,7 +22,7 @@ from .info_api import info_api
 from .devicebind import bind_api
 from .sso import sso_api
 from .lan_agent import net_api
-from .utils import password_hash
+from .utils.security import password_hash
 from datetime import datetime
 
 
