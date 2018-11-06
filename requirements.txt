@@ -4,4 +4,4 @@ flask-redis
 pymysql
 redis
 jwcrypto
-LANDevice
+gunicorn

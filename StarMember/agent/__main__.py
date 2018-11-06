@@ -8,11 +8,11 @@ def main():
     config = LANDeviceProberConfig()
     print('LAN Device prober started.')
 
-    if 'LAN_DEV_PROBER_CONFIG' not in os.environ:
-        print("Environment variable LAN_DEV_PROBER_CONFIG not exists.")
+    if 'API_CFG' not in os.environ:
+        print("Environment variable API_CFG not exists.")
         return None
     else:
-        config.FromEnv('LAN_DEV_PROBER_CONFIG')
+        config.FromEnv('API_CFG')
 
     prober = LANDeviceProber(config)
 

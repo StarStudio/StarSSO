@@ -53,6 +53,13 @@ else:
     print('Use config.py')
     app.config.from_pyfile('config.py')
 
+# Set Default: SERVER_MODE
+AVALIABLE_SERVER_MODE = frozenset(['APIServer', 'Agent'])
+app.config['SERVER_MODE'] = app.config.get('STARSSO_SERVER_MODE', 'APIServer')
+if app.config['SERVER_MODE'] not in AVALIABLE_SERVER_MODE:
+    raise ValueError('Unsupported Server Mode: %s' % app.config['SERVER_MODE'])
+
+
 # Set default redis url
 redis_url = app.config.get('REDIS_URL', None)
 if redis_url is None:
