@@ -1,7 +1,8 @@
 from flask import request, current_app, jsonify, abort
 from StarMember.views import SignAPIView, with_application_token, resource_access_denied, api_succeed, api_user_pending, api_wrong_params
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.utils import MACToInt, IntToMAC, get_request_params
+from StarMember.utils import MACToInt, IntToMAC, get_request_params, get_real_remote_address
+
 from pymysql.err import IntegrityError
 
 class BindView(SignAPIView):
@@ -132,7 +133,7 @@ class BindView(SignAPIView):
         device_lists = {MACToInt(mac): { 'IPs' : list(ips) } for mac, ips in current_app.device_list.Snapshot().items()}
         if mac_int not in device_lists:
             return api_wrong_params('Device not found.')
-        if request.remote_addr not in device_lists[mac_int]:
+        if get_real_remote_address() not in device_lists[mac_int]:
             return api_wrong_params('Bind another device is not allowed.')
 
         conn = current_app.mysql.connect()
