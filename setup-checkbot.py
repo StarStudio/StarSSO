@@ -8,7 +8,7 @@ def load_requirements():
 setup(
     name = 'CheckBot'
     , description = "Checking Dog."
-    , version = '1.0.1'
+    , version = '1.0.2'
     , packages = [
         'CheckBot'
     ]
