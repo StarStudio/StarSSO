@@ -1,2 +1,5 @@
+from gevent.monkey import patch_all
+patch_all()
+
 from .discover import LANDeviceProber
-from LANDevice.config import LANDeviceProberConfig
+from StarMember.agent.config import LANDeviceProberConfig

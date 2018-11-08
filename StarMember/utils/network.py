@@ -31,7 +31,9 @@ class Network:
         redis_storage = _redis_storage_getter()
         if redis_storage is None:
             raise RuntimeError('Cannot access to redis.')
-        nid = self._redis.get(_ip.replace('.', '_'))
+        nid = redis_storage.get(current_app.config['LAN_DEV_REDIS_PROBER_IDENT_PREFIX'] + '_gateway_map_' + _ip.replace('.', '_'))
+        if nid:
+            nid = nid.decode('utf8')
         if nid is None or not check_network_id(nid):
             return None
         return Network(nid)
@@ -93,7 +95,7 @@ class Network:
 
     @property
     def LocalAgentIP(self):
-        return self._redis.hget(self._redis_info_key, 'AgentLocalIP')
+        return self._redis.hget(self._redis_info_key, 'AgentLocalIP').decode('utf8')
 
     @property
     def ProbeInterval(self):

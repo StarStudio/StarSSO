@@ -3,7 +3,7 @@ import uuid
 import json
 
 from flask import current_app
-from base64 import b64encode
+from base64 import b64encode, b64decode
 from datetime import datetime, timedelta
 from jwcrypto.jwt import JWT, JWTExpired
 from jwcrypto.jws import InvalidJWSSignature
@@ -39,69 +39,167 @@ class DuplicatedTokenType(Exception):
 
 
 class APIToken(JWT):
-    ACCEPTABLE_TOKEN_TYPES = frozenset(['auth', 'application'])
-
     TOKEN_CLASS_REGISTRY = {}
-
+    
     @staticmethod
     def RegisterAPITokenClass(_class):
         if _class.REGISTER_CLASS_NAME in APIToken.TOKEN_CLASS_REGISTRY:
             raise DuplicatedTokenType('API Token Class %s already exists.' % _name)
         APIToken.TOKEN_CLASS_REGISTRY[_class.REGISTER_CLASS_NAME] = _class
 
+    @staticmethod
+    def FromString(_raw):
+        '''
+            Load token from string.
 
-    def __init__(self, _token_type, _key_getter = flask_jwt_key_getter, *args, **kwargs):
-        if _token_type not in ACCEPTABLE_TOKEN_TYPES:
-            raise InvalidAPITokenType('Unsupported API Token type: ' % _token_type)
+            :params:
+                _raw        String.
+
+            :return:
+                Load token from string.
+        '''
+        # Get token type and find registered class.
+        claims = None
+        if isinstance(_raw, str):
+            parts = _raw.split('.')
+            if len(parts) == 3:
+                claims = b64decode(parts[1])
+        if claims is None or 'usage' not in claims or claims['usage'] not in TOKEN_CLASS_REGISTRY:
+            raise ValueError('Not a valid Token')
+        return TOKEN_CLASS_REGISTRY[claims['usage']](claims = _raw)
+        
+
+    def __init__(self, _token_type, _timeout = None,_key_getter = flask_jwt_key_getter, **kwargs):
+        if _token_type not in APIToken.TOKEN_CLASS_REGISTRY:
+            raise InvalidAPITokenType('Unsupported API Token type: %s' % _token_type)
         self._key_getter = _key_getter
         self._token_type = _token_type
         self._token_id = str(uuid.uuid4()).replace('-', '')
-        super().__init__(*args, **kwargs)
+        self._issue_datetime = datetime.now()
+        if 'header' not in kwargs:
+            kwargs['header'] = {'alg': 'RS256', 'typ': 'JWT'}
+        if 'claims' not in kwargs:
+            kwargs['claims'] = {}
+        kwargs['claims'].update({
+            'usage': _token_type
+            , 'jti' : self._token_id
+            , 'iat': int(self._issue_datetime.timestamp())
+        })
+        if isinstance(_timeout, int):
+            kwargs['claims']['exp'] = int((self._issue_datetime + timedelta(seconds = _timeout)).timestamp())
+        super().__init__(**kwargs)
+            
+
+    #@property
+    #def IssueAt(self):
+    #    if 'iat' not in self._claims\
+    #        or not isinstance(self._claims['iat'], int):
+    #        return None
+    #    return datetime.fromtimestamp(self._claims['iat'])
 
 
-    @property
-    def IssueAt(self):
-        if 'iat' not in self._claims\
-            or isinstance(self._claims['iat'], int):
-            return None
-        return datetime.fromtimestmp(self._claims['iat'])
-
-
-    def SetDefaultClaims(self):
-        if 'iat' not in self._claims \
-            or not isinstance(self._claims['iat'], int):
-            self._claims['iat'] = int(datetime.now().timestamp())
-        self._claims['usage'] = self._token_type
-        self._claims['jti'] = self._token_id
-
-        
     def make_signed_token(self):
-        self.SetDefaultClaims()
         return super().make_signed_token(self._key_getter())
 
 
 
-class ProxyToken(APIToken):
-    REGISTER_CLASS_NAME = 'proxy'
+class ShimToken(APIToken):
+    REGISTER_CLASS_NAME = 'shim'
 
-    def __init__(self, _nid, _avaliable_period = 10, _request_id = None, *args, **kwargs):
-        self._avaliable_period = _avaliable_period
-        if not isinstance(request_id, str):
-            self._request_id = _request_id
-        else:
-            self._request_id = str(uuid.uuid4()).replace('-', '')
-        self.nid = _nid
-        super().__init__(_token_type = ProxyToken.REGISTER_CLASS_NAME, *arg, **kwargs)
+    def __init__(self, _redirect = None, _request_id = None, _query_key = None, **kwargs):
+        if 'claims' not in kwargs:
+            kwargs['claims'] = {}
+        
+        claims = kwargs['claims']
+        
+        if 'reqid' not in claims:
+            if isinstance(_request_id, str):
+                claims['reqid'] = _request_id
+            else:
+                claims['reqid'] = str(uuid.uuid4()).replace('-', '')
+
+        if 'redir' not in claims:
+            if isinstance(_redirect, str):
+                claims['reqid'] = _redirect
+
+        if 'qk' not in claims:
+            if isinstance(_query_key, str):
+                claims['qk'] = _query_key
+        super().__init__(_token_type = ShimToken.REGISTER_CLASS_NAME, **kwargs)
 
 
-    def SetDefaultClaims(self):
-        super().SetDefaultClaims()
-        self._claims['exp'] = ((self.IssueAt + timedelta(seconds = self._avaliable_period)).timestamp())
+    @property
+    def Redirect(self):
+        claims = json_decode(self._claims)
+        if 'redir' not in claims:
+            return None
+        return claims['redir']
 
 
-APIToken.RegisterAPITokenClass(ProxyToken)
+    @property
+    def RequestID(self):
+        claims = json_decode(self._claims)
+        if 'reqid' not in claims:
+            return None
+        return claims['reqid']
 
 
+    @property
+    def QueryKey(self):
+        claims = json_decode(self._claims)
+        if 'qk' not in claims:
+            return None
+        return claims['qk']
+
+
+APIToken.RegisterAPITokenClass(ShimToken)
+
+
+class ShimResponseToken(APIToken):
+    REGISTER_CLASS_NAME = 'shimr'
+
+    def __init__(self, _request_id = None, _network_id = None, _local_ip = None, **kwargs):
+        if 'claims' not in kwargs:
+            kwargs['claims'] = {}
+
+        claims = kwargs['claims']
+        if 'reqid' not in claims:
+            if isinstance(_request_id, str):
+                claims['nid'] = _request_id
+
+        if 'nid' not in claims:
+            if isinstance(_network_id, str):
+                claims['nid'] = _network_id
+
+        if 'local' not in claims:
+            if isinstance(_local_ip, str):
+                claims['local'] = _network_id
+
+        super().__init__(_token_type = ShimResponseToken.REGISTER_CLASS_NAME, **kwargs)
+
+    @property
+    def RequestID(self):
+        claims = json_decode(self._claims)
+        if 'redir' not in claims:
+            return None
+        return claims['redir']
+
+    @property
+    def NetworkID(self):
+        claims = json_decode(self._claims)
+        if 'nid' not in claims:
+            return None
+        return claims['nid']
+
+    @property
+    def LocalIP(self):
+        claims = json_decode(self._claims)
+        if 'local' not in claims:
+            return None
+        return claims['local']
+
+
+APIToken.RegisterAPITokenClass(ShimResponseToken)
 
 def new_token(_json = {}, _key_getter = flask_jwt_key_getter, _available_period = None):
     '''

@@ -1,7 +1,7 @@
 import socket
 import netifaces
 from struct import Struct, unpack
-from LANDevice.utils import IPv4ToInt, IntToIPv4
+from StarMember.agent.utils import IPv4ToInt, IntToIPv4
 from datetime import timedelta, datetime
 
 

@@ -58,7 +58,6 @@ class DeviceList:
         '''
         devices = {}
         publish_list = self._redis.eval(REDIS_GET_LUA, 1, self._config.redis_prefix + '_landev_publishers')
-        print(publish_list)
         for raw_item in publish_list:
             splited = raw_item.decode('ascii').split(',')
             if len(splited) != 3:

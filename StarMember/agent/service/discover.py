@@ -15,9 +15,9 @@ from gevent.event import Event
 from gevent.queue import Queue, Empty
 from .ping import ping
 from .arp import ARPRequest
-from LANDevice.error import InterfaceNotFoundError
-from LANDevice.utils import IPv4ToInt, IntToIPv4
-from LANDevice.config import LANDeviceProberConfig
+from StarMember.agent.error import InterfaceNotFoundError
+from StarMember.agent.utils import IPv4ToInt, IntToIPv4
+from StarMember.agent.config import LANDeviceProberConfig
 from traceback import print_exc
 
 def _probe_fibre(_addr, _interface, _timeout, _queue):
@@ -314,12 +314,12 @@ class LANDeviceProber:
                         , trigger = 'interval'
                         , seconds = 20)
 
-        self.device_probe_job = self.sched.add_job(
-                        self._device_probe_procedure_lead
-                        , name = 'Probe devices.'
-                        , max_instances = 1
-                        , trigger = 'interval'
-                        , seconds = self._config.probe_interval)
+        #self.device_probe_job = self.sched.add_job(
+        #                self._device_probe_procedure_lead
+        #                , name = 'Probe devices.'
+        #                , max_instances = 1
+        #                , trigger = 'interval'
+        #                , seconds = self._config.probe_interval)
 
         self.keepalive_job = self.sched.add_job(
                         self._agent_keepalive
@@ -328,7 +328,7 @@ class LANDeviceProber:
                         , trigger = 'interval'
                         , seconds = 10)
 
-        self.device_probe_job.modify(next_run_time = datetime.now())
+        #self.device_probe_job.modify(next_run_time = datetime.now())
 
         self.sched.start()
                     

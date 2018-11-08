@@ -8,7 +8,7 @@ from flask.views import MethodView
 from werkzeug.urls import url_encode
 from traceback import print_exc, format_exc
 from .utils.param import get_request_params
-from .utils.security import decode_token, ProxyToken
+from .utils.security import decode_token
 from .utils.device import get_real_remote_address
 from .utils.network import Network
 from functools import wraps
@@ -195,7 +195,11 @@ class SignAPIView(MethodView):
                 log_info['request_data'] = request_data
 
             result =  super().dispatch_request(*arg, **kwarg)
-            log_info['result'] = json.loads(result.data.decode())
+            try:
+                log_info['result'] = json.loads(result.data.decode())
+            except json.JSONDecodeError as e:
+                log_info['result'] = result.data.decode()
+
             current_app.access_logger.info(json.dumps(log_info))
             return result
 
@@ -206,7 +210,7 @@ class SignAPIView(MethodView):
             current_app.error_logger.error(exc_info + '\n Exception ID: %s' % str(exc_uuid))
             return jsonify({
                 'code': 1505
-                , 'msg': 'Server raises a exception with id %s' % str(uuid.uuid4())
+                , 'msg': 'Server raises a exception with id %s' % str(exc_uuid)
                 , 'data': ''
             })
 

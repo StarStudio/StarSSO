@@ -165,7 +165,21 @@ def load_digest_salt():
 
     return salt_text
         
-
+def load_network_id():
+    nid_path = current_app.config.get('LAN_DEV_NETWORK_ID_FILE', None)
+    if nid_path is None:
+        raise RuntimeError('LAN_DEV_NETWORK_ID_FILE not configured.')
+    while True:
+        try:
+            nid_io = open(salt_path, 'rt')
+            break
+        except FileNotFoundError as e:
+            print('Network ID File not present: %s' % nid_path)
+            print('Wait for 10 seconds.')
+        time.sleep(10)
+    current_app.network_id = nid_io.read()
+    nid_io.close()
+    
 def generate_logger():
     app.access_logger = logging.getLogger('access_log')
     app.access_logger.setLevel(logging.INFO)
@@ -259,6 +273,9 @@ def app_init():
     generate_logger()
     init_admin_account()
     reset_admin_application()
+
+    if app.config['SERVER_MODE'] == 'Agent':
+        load_network_id()
 
     user_initial_access = current_app.config.get('USER_INITIAL_ACCESS', None)
     if user_initial_access is None:
