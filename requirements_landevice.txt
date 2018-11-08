@@ -2,3 +2,4 @@ gevent
 apscheduler
 netifaces
 requests
+redis

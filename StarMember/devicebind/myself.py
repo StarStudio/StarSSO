@@ -23,7 +23,6 @@ class MyselfDeviceView(SignAPIView):
                 , 'data': None
             })
 
-        
         #map_device = {ip: mac for mac, ips in current_app.device_list.Snapshot().items() for ip in ips}
         
         #map_device = {nid: {ip: mac for ip in ips} for mac, (nid, ips) in current_app.device_list.Snapshot().items()}

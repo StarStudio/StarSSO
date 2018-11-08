@@ -2,8 +2,8 @@
 #   LANDevice Port to read device list and watch device event
 #
 
-import redis
 import uuid
+import redis
 
 from .config import LANDeviceProberConfig
 
