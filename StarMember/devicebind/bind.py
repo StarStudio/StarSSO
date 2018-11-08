@@ -130,7 +130,7 @@ class BindView(SignAPIView):
         except ValueError as e:
             return api_wrong_params(str(e))
 
-        device_lists = {MACToInt(mac): { 'IPs' : list(ips) } for mac, ips in current_app.device_list.Snapshot().items()}
+        device_lists = {MACToInt(mac): { 'IPs' : list(ips) } for mac, (nid, ips) in current_app.device_list.Snapshot().items()}
         if mac_int not in device_lists:
             return api_wrong_params('Device not found.')
         if get_real_remote_address() not in device_lists[mac_int]:

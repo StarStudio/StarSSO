@@ -6,7 +6,7 @@ class MyselfDeviceView(SignAPIView):
     method = ['GET']
 
     def get(self):
-        map_device = {ip: mac for mac, ips in current_app.device_list.Snapshot().items() for ip in ips}
+        map_device = {ip: mac for mac, (nid ,ips) in current_app.device_list.Snapshot().items() for ip in ips}
         remote_addr = get_real_remote_address()
         addr = map_device.get(remote_addr, None)
         

@@ -14,6 +14,6 @@ class DeviceListView(SignAPIView):
 
         return jsonify({
                     'code': 200
-                    , 'data' : {mac: { 'IPs' : list(ips) } for mac, ips in current_app.device_list.Snapshot().items()}
+                    , 'data' : {mac: { 'IPs' : list(ips) } for mac, (nid, ips) in current_app.device_list.Snapshot().items()}
                     , 'msg' : 'succeed'
                 })
