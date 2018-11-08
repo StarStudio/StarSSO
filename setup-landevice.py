@@ -8,7 +8,7 @@ def load_requirements():
 setup(
     name = 'LANDevice'
     , description = "LAN Device discover."
-    , version = '1.0.1'
+    , version = '1.0.2'
     , packages = [
         'LANDevice'
         , 'LANDevice.service'

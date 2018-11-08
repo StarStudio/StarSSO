@@ -3,7 +3,6 @@ import gevent
 import weakref
 import netifaces
 import socket
-import redis
 import uuid
 import requests
 import os
