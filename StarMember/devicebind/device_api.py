@@ -11,7 +11,7 @@ bind_api.add_url_rule('/list', view_func = DeviceListView.as_view('DeviceList'))
 bind_api.add_url_rule('/myself', view_func = MyselfDeviceView.as_view('MyselfDevice'))
 bind_api.add_url_rule('/mine', view_func =  BindView.as_view('Mine'))
 bind_api.add_url_rule('/mine/<string:mac>', view_func = BindManageView.as_view('BindManage'))
-bind_api.add_url_rule('/infomation_shim', view_func = InformationShimView.as_view('InformationShim'))
+bind_api.add_url_rule('/information_shim', view_func = InformationShimView.as_view('InformationShim'))
 
 
 

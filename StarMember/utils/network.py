@@ -61,6 +61,7 @@ class Network:
             'AgentLocalIP': ''
             , 'NetworkPublishIP': ''
             , 'ID': self._id
+            , 'AgentLocalPort': 80
         })
         return self.Verify(_raise_exception = False)
 
@@ -105,6 +106,15 @@ class Network:
     def LocalAgentIP(self, _IP):
         self._redis.hset(self._redis_info_key, 'AgentLocalIP', _IP)
 
+    @property
+    def LocalAgentPort(self):
+        return int(self._redis.hget(self._redis_info_key, 'AgentLocalIP').decode())
+
+    @LocalAgentPort.setter
+    def LocalAgentPort(self, _port):
+        if not isinstance(_port, int):
+            raise ValueError('Port should be an integar.')
+        self._redis.hset(self._redis_info_key, 'AgentLocalPort', _port)
 
     @property
     def ID(self):

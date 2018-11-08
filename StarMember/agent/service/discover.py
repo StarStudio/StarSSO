@@ -231,6 +231,7 @@ class LANDeviceProber:
         '''
         resp = requests.post(self._config.network_api + '/%s' % self.publish_port.NetworkID + '/liveness', json = {
             'local_ip': self.publish_local_ip
+            , 'local_port': self._config.server_port
         })
         print('Keepalive : %s ' % resp.json())
         

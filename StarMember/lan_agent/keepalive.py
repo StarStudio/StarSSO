@@ -10,8 +10,8 @@ class LANKeepalive(SignAPIView):
 
     def post(self, nid):
         params = get_request_params()
-        type_checker = post_data_type_checker(local_ip = str)
-        key_checker = post_data_key_checker('local_ip')
+        type_checker = post_data_type_checker(local_ip = str, local_port = int)
+        key_checker = post_data_key_checker('local_ip', 'local_port')
         ok, err_msg = key_checker(params)
         if not ok:
             return param_error(err_msg)
@@ -23,6 +23,7 @@ class LANKeepalive(SignAPIView):
         try:
             net = Network(nid)
             net.LocalAgentIP = params['local_ip']
+            net.LocalAgentPort = params['local_port']
             remote_addr = get_real_remote_address()
             if remote_addr is None:
                 current_app.log_error('Cannot get remote address. nid=%s, local_ip=%s' % (nid, params['local_ip']))

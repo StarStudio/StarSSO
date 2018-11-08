@@ -59,14 +59,19 @@ class APIToken(JWT):
                 Load token from string.
         '''
         # Get token type and find registered class.
-        claims = None
-        if isinstance(_raw, str):
-            parts = _raw.split('.')
-            if len(parts) == 3:
-                claims = b64decode(parts[1])
-        if claims is None or 'usage' not in claims or claims['usage'] not in TOKEN_CLASS_REGISTRY:
+        try:
+            claims = None
+            if isinstance(_raw, str):
+                parts = _raw.split('.')
+                if len(parts) == 3:
+                    claims = b64decode(parts[1] + '=' * (4 - (len(parts[1]) & 0x3))).decode()
+                    claims = json.loads(claims)
+        except json.JSONDecodeError as e:
+            raise ValueError('Not a valid Token %s' % str(e))
+
+        if claims is None or 'usage' not in claims or claims['usage'] not in APIToken.TOKEN_CLASS_REGISTRY:
             raise ValueError('Not a valid Token')
-        return TOKEN_CLASS_REGISTRY[claims['usage']](claims = _raw)
+        return APIToken.TOKEN_CLASS_REGISTRY[claims['usage']](claims = _raw)
         
 
     def __init__(self, _token_type, _timeout = None,_key_getter = flask_jwt_key_getter, **kwargs):
@@ -80,6 +85,10 @@ class APIToken(JWT):
             kwargs['header'] = {'alg': 'RS256', 'typ': 'JWT'}
         if 'claims' not in kwargs:
             kwargs['claims'] = {}
+        else:
+            if isinstance(kwargs['claims'], str):
+                kwargs['claims'] = json.loads(kwargs['claims'])
+
         kwargs['claims'].update({
             'usage': _token_type
             , 'jti' : self._token_id
@@ -110,8 +119,10 @@ class ShimToken(APIToken):
         if 'claims' not in kwargs:
             kwargs['claims'] = {}
         
+        if isinstance(kwargs['claims'], str):
+            kwargs['claims'] = json.loads(kwargs['claims'])
         claims = kwargs['claims']
-        
+
         if 'reqid' not in claims:
             if isinstance(_request_id, str):
                 claims['reqid'] = _request_id
@@ -161,6 +172,9 @@ class ShimResponseToken(APIToken):
     def __init__(self, _request_id = None, _network_id = None, _local_ip = None, **kwargs):
         if 'claims' not in kwargs:
             kwargs['claims'] = {}
+
+        if isinstance(kwargs['claims'], str):
+            kwargs['claims'] = json.loads(kwargs['claims'])
 
         claims = kwargs['claims']
         if 'reqid' not in claims:

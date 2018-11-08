@@ -14,7 +14,7 @@ from jwcrypto.jws import InvalidJWSSignature
 
 
 ID_RE = re.compile('^[a-f0-9]{32}$')
-SHIM_REDIRECT_PATH = '/v1/star/information_shim'
+SHIM_REDIRECT_PATH = '/v1/star/device/information_shim'
 
 def default_redis_getter():
     return current_app.redis_store
@@ -137,7 +137,7 @@ class APIRequestContext(dict):
         querys = url_encode({
                 "token": token.serialize()
         })
-        redirect_to = 'http://' + self._net.LocalAgentIP + SHIM_REDIRECT_PATH + '?' + querys
+        redirect_to = 'http://' + self._net.LocalAgentIP + ':8000' + SHIM_REDIRECT_PATH + '?' + querys
         return redirect(redirect_to)
         
         

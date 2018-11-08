@@ -8,13 +8,19 @@ import uuid
 from traceback import print_exc
 
 
-parser = argparse.ArgumentParser(description = 'Starstudio Single Sign-On Server.')
+parser = argparse.ArgumentParser(
+            description = 'Starstudio Single Sign-On Server.'
+            , formatter_class = argparse.ArgumentDefaultsHelpFormatter
+        )
+
 parser.add_argument('--agent', help = 'Run SSO Server in Agent mode.', action = 'store_true')
-parser.add_argument('--register-token', help = 'Register to register network.', type = str)
+parser.add_argument('--register-token', help = 'Token to register network.', type = str)
 parser.add_argument('--network-id-file', help = 'File to save/load network id', type = str)
 parser.add_argument('-c', '--config', help = 'Use specified configure file. Otherwise, configure file specified by Environment Variable API_CFG will be used.', type = str)
 parser.add_argument('-l', '--listen', help = 'Listen to address for incoming requests.', type = str, default = '0.0.0.0')
 parser.add_argument('-p', '--port', help = 'Listen to port for incoming requests.', type = int, default = 80)
+parser.add_argument('--local-publish-port', help = 'Publish port for local network. Default to listening port.', type = int)
+parser.add_argument('--local-publish-ip', help = 'Publish IP for local network. Default to listening address.', type = str)
 parser.add_argument('--worker-count', help = 'Gunicorn worker instances', type = int, default = 10)
 parser.add_argument('--worker-connections', help = 'Gunicorn worker connections', type = int, default = 1000)
 parser.add_argument('--access-log', help = 'Specified access log file.', type = str)

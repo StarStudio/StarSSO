@@ -14,6 +14,7 @@ class LANDeviceProberConfig:
             , ('api_server_domain', 'LAN_DEV_APISERVER_DOMAIN', str)
             , ('network_id_file', 'LAN_DEV_NETWORK_ID_FILE', str)
             , ('register_token', 'LAN_DEV_REGISTER_TOKEN', str)
+            , ('server_port', 'LAN_DEV_API_SERVER_PORT', int)
         ])
 
     probe_timeout = 5
@@ -26,6 +27,7 @@ class LANDeviceProberConfig:
     api_server_domain = 'http://127.0.0.1:8000'
     network_id_file = 'network_id'
     register_token = ''
+    server_port = 8001
 
     def FromEnv(self, _env):
         '''
