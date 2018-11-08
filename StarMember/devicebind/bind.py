@@ -133,7 +133,7 @@ class BindView(SignAPIView):
         device_lists = {MACToInt(mac): { 'IPs' : list(ips) } for mac, (nid, ips) in current_app.device_list.Snapshot().items()}
         if mac_int not in device_lists:
             return api_wrong_params('Device not found.')
-        if get_real_remote_address() not in device_lists[mac_int]:
+        if get_real_remote_address() not in device_lists[mac_int]['IPs']:
             return api_wrong_params('Bind another device is not allowed.')
 
         conn = current_app.mysql.connect()
