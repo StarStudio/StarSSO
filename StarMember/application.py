@@ -55,7 +55,7 @@ else:
 
 # Set Default: SERVER_MODE
 AVALIABLE_SERVER_MODE = frozenset(['APIServer', 'Agent'])
-app.config['SERVER_MODE'] = app.config.get('STARSSO_SERVER_MODE', 'APIServer')
+app.config['SERVER_MODE'] = os.environ.get('STARSSO_SERVER_MODE', 'APIServer')
 if app.config['SERVER_MODE'] not in AVALIABLE_SERVER_MODE:
     raise ValueError('Unsupported Server Mode: %s' % app.config['SERVER_MODE'])
 
@@ -171,7 +171,7 @@ def load_network_id():
         raise RuntimeError('LAN_DEV_NETWORK_ID_FILE not configured.')
     while True:
         try:
-            nid_io = open(salt_path, 'rt')
+            nid_io = open(nid_path, 'rt')
             break
         except FileNotFoundError as e:
             print('Network ID File not present: %s' % nid_path)

@@ -71,10 +71,17 @@ class APIToken(JWT):
 
         if claims is None or 'usage' not in claims or claims['usage'] not in APIToken.TOKEN_CLASS_REGISTRY:
             raise ValueError('Not a valid Token')
-        return APIToken.TOKEN_CLASS_REGISTRY[claims['usage']](claims = _raw)
+        return APIToken.TOKEN_CLASS_REGISTRY[claims['usage']](jwt = _raw)
         
 
-    def __init__(self, _token_type, _timeout = None,_key_getter = flask_jwt_key_getter, **kwargs):
+    def __init__(self, _token_type = None, _timeout = None,_key_getter = flask_jwt_key_getter, **kwargs):
+        if 'jwt' in kwargs:
+            if 'key' not in kwargs:
+                if _key_getter:
+                    kwargs['key'] = flask_jwt_key_getter()
+
+            super().__init__(**kwargs)
+            return
         if _token_type not in APIToken.TOKEN_CLASS_REGISTRY:
             raise InvalidAPITokenType('Unsupported API Token type: %s' % _token_type)
         self._key_getter = _key_getter
@@ -99,16 +106,17 @@ class APIToken(JWT):
         super().__init__(**kwargs)
             
 
-    #@property
-    #def IssueAt(self):
-    #    if 'iat' not in self._claims\
-    #        or not isinstance(self._claims['iat'], int):
-    #        return None
-    #    return datetime.fromtimestamp(self._claims['iat'])
-
-
     def make_signed_token(self):
         return super().make_signed_token(self._key_getter())
+
+    @property
+    def TokenType(self):
+        if not self._claims:
+            return ''
+        claims = json_decode(self._claims)
+        if 'usage' not in claims:
+            return ''
+        return claims['usage']
 
 
 
@@ -116,6 +124,12 @@ class ShimToken(APIToken):
     REGISTER_CLASS_NAME = 'shim'
 
     def __init__(self, _redirect = None, _request_id = None, _query_key = None, **kwargs):
+        if 'jwt' in kwargs:
+            super().__init__(**kwargs)
+            if self.TokenType != ShimToken.REGISTER_CLASS_NAME:
+                raise InvalidAPITokenType('Not a ShimToken.')
+            return
+
         if 'claims' not in kwargs:
             kwargs['claims'] = {}
         
@@ -131,7 +145,7 @@ class ShimToken(APIToken):
 
         if 'redir' not in claims:
             if isinstance(_redirect, str):
-                claims['reqid'] = _redirect
+                claims['redir'] = _redirect
 
         if 'qk' not in claims:
             if isinstance(_query_key, str):
@@ -163,6 +177,7 @@ class ShimToken(APIToken):
         return claims['qk']
 
 
+
 APIToken.RegisterAPITokenClass(ShimToken)
 
 
@@ -170,6 +185,12 @@ class ShimResponseToken(APIToken):
     REGISTER_CLASS_NAME = 'shimr'
 
     def __init__(self, _request_id = None, _network_id = None, _local_ip = None, **kwargs):
+        if 'jwt' in kwargs:
+            super().__init__(**kwargs)
+            if self.TokenType != ShimResponseToken.REGISTER_CLASS_NAME:
+                raise InvalidAPITokenType('Not a ShimToken.')
+            return
+
         if 'claims' not in kwargs:
             kwargs['claims'] = {}
 
@@ -179,7 +200,7 @@ class ShimResponseToken(APIToken):
         claims = kwargs['claims']
         if 'reqid' not in claims:
             if isinstance(_request_id, str):
-                claims['nid'] = _request_id
+                claims['reqid'] = _request_id
 
         if 'nid' not in claims:
             if isinstance(_network_id, str):
@@ -187,16 +208,16 @@ class ShimResponseToken(APIToken):
 
         if 'local' not in claims:
             if isinstance(_local_ip, str):
-                claims['local'] = _network_id
+                claims['local'] = _local_ip
 
         super().__init__(_token_type = ShimResponseToken.REGISTER_CLASS_NAME, **kwargs)
 
     @property
     def RequestID(self):
         claims = json_decode(self._claims)
-        if 'redir' not in claims:
+        if 'reqid' not in claims:
             return None
-        return claims['redir']
+        return claims['reqid']
 
     @property
     def NetworkID(self):

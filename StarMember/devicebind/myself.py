@@ -4,13 +4,11 @@ from StarMember.utils.device import get_real_remote_address
 from StarMember.utils.context import APIRequestContext
 from StarMember.views import api_succeed
 
-import ipdb
 
 class MyselfDeviceView(SignAPIView):
     method = ['GET']
 
     def get(self):
-        ipdb.set_trace()
         ctx = APIRequestContext()
         if not ctx.ResumeFromRequest(): # first request.
             if not ctx.MAC: # No device MAC found.
@@ -18,9 +16,7 @@ class MyselfDeviceView(SignAPIView):
                 return ctx.RedirectForDeviceInfo()
         elif not ctx.Net or not ctx.MAC or not ctx.LocalIP:
             return api_succeed({
-                'code': 200
-                , 'msg' : 'succeed'
-                , 'data': None
+                'data': None
             })
 
         #map_device = {ip: mac for mac, ips in current_app.device_list.Snapshot().items() for ip in ips}

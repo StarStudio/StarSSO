@@ -62,6 +62,7 @@ LAN_DEV_API_SERVER_PORT = 8000
 LAN_DEV_REGISTER_TOKEN = 'e711230222eb453f93c72d4db2ea0ea3'
 LAN_DEV_NETWORK_ID_FILE = 'network_id'
 LAN_DEV_REDIS_PROBER_IDENT_PREFIX = 'LANDEV_DEFAULT'      # Redis key前缀，用于区分应用
+LAN_DEV_APISERVER_DOMAIN='http://127.0.0.1:10029'
 LAN_DEV_LIVENESS_TRACK_INTERVAL = 5                       # 进行设备存活测试的时间间隔
 LAN_DEV_LIVENESS_PROBE_TIMEOUT = 5                        # 进行设备发现超时时间
                                                           # 若设备在此时间内无响应，则判断

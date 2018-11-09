@@ -23,7 +23,7 @@ class LANKeepalive(SignAPIView):
         try:
             net = Network(nid)
             net.LocalAgentIP = params['local_ip']
-            net.LocalAgentPort = params['local_port']
+            net.LocalAgentPort = int(params['local_port'])
             remote_addr = get_real_remote_address()
             if remote_addr is None:
                 current_app.log_error('Cannot get remote address. nid=%s, local_ip=%s' % (nid, params['local_ip']))

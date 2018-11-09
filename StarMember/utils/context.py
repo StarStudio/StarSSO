@@ -4,9 +4,9 @@ import uuid
 
 from .network import Network
 from .device import get_real_remote_address
-from .security import ShimToken, ShimResponseToken
+from .security import ShimToken, ShimResponseToken, APIToken
 
-from flask import request, current_app, redirect
+from flask import request, current_app, redirect, url_for
 from StarMember.views import resource_access_denied
 from werkzeug.urls import url_encode
 from jwcrypto.jwt import JWT, JWTExpired
@@ -14,7 +14,6 @@ from jwcrypto.jws import InvalidJWSSignature
 
 
 ID_RE = re.compile('^[a-f0-9]{32}$')
-SHIM_REDIRECT_PATH = '/v1/star/device/information_shim'
 
 def default_redis_getter():
     return current_app.redis_store
@@ -23,7 +22,7 @@ def default_redis_prefix_getter():
     return current_app.config['LAN_DEV_REDIS_PROBER_IDENT_PREFIX']
 
 class APIRequestContext(dict):
-    def __init__(self, _context_id_query_key = 'rctx', _id = None, _timeout = 10, _redis_getter = default_redis_getter, _redis_prefix_getter = default_redis_prefix_getter):
+    def __init__(self, _context_id_query_key = 'rctx', _id = None, _timeout = 1000, _redis_getter = default_redis_getter, _redis_prefix_getter = default_redis_prefix_getter):
 
         self._context_id_query_key = _context_id_query_key
         self._redis_getter = _redis_getter
@@ -62,10 +61,18 @@ class APIRequestContext(dict):
         '''
             Resolve Device MAC
         '''
-        map_device = {nid: {ip: mac for ip in ips} for mac, (nid, ips) in current_app.device_list.Snapshot().items()}
+        map_device = {}
+        for mac, (nid, ips) in current_app.device_list.Snapshot().items():
+            if nid not in map_device:
+                map_device[nid] = {}
+            net_map = map_device[nid]
+            for ip in ips:
+                if ip not in net_map:
+                    net_map[ip] = mac
+
         if self._net and self._net.ID in map_device:
             if self._local_ip in map_device[self._net.ID]:
-                self.mac = map_device[self._net.ID][self._local_ip]
+                self._mac = map_device[self._net.ID][self._local_ip]
 
         
     def ResumeFromRequest(self):
@@ -84,7 +91,7 @@ class APIRequestContext(dict):
         raw = request.args[self._context_id_query_key]
         try:
             token = APIToken.FromString(raw)
-        except (InvalidJWSsignature, JWTExpire, ValueError) as e:
+        except (InvalidJWSSignature, JWTExpired, ValueError) as e:
             return False
 
         if not isinstance(token, ShimResponseToken):
@@ -137,7 +144,13 @@ class APIRequestContext(dict):
         querys = url_encode({
                 "token": token.serialize()
         })
-        redirect_to = 'http://' + self._net.LocalAgentIP + ':8000' + SHIM_REDIRECT_PATH + '?' + querys
+        redirect_to = 'https://' if self._net.LocalAgentPort == 443 else 'http://'
+        redirect_to += self._net.LocalAgentIP
+        if self._net.LocalAgentPort != 443 and self._net.LocalAgentPort != 80:
+            redirect_to += ':%d' % self._net.LocalAgentPort
+        redirect_to += url_for('DeviceBindAPI.InformationShim')
+        redirect_to += '?' + querys
+
         return redirect(redirect_to)
         
         
