@@ -22,7 +22,7 @@ def default_redis_prefix_getter():
     return current_app.config['LAN_DEV_REDIS_PROBER_IDENT_PREFIX']
 
 class APIRequestContext(dict):
-    def __init__(self, _context_id_query_key = 'rctx', _id = None, _timeout = 1000, _redis_getter = default_redis_getter, _redis_prefix_getter = default_redis_prefix_getter):
+    def __init__(self, _context_id_query_key = 'rctx', _id = None, _timeout = 10, _redis_getter = default_redis_getter, _redis_prefix_getter = default_redis_prefix_getter):
 
         self._context_id_query_key = _context_id_query_key
         self._redis_getter = _redis_getter
@@ -148,7 +148,7 @@ class APIRequestContext(dict):
         redirect_to += self._net.LocalAgentIP
         if self._net.LocalAgentPort != 443 and self._net.LocalAgentPort != 80:
             redirect_to += ':%d' % self._net.LocalAgentPort
-        redirect_to += url_for('DeviceBindAPI.InformationShim')
+        redirect_to += url_for('Shims.Information')
         redirect_to += '?' + querys
 
         return redirect(redirect_to)
