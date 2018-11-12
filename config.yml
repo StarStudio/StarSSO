@@ -1,0 +1,103 @@
+---
+log:
+    access_log: access.log
+    error_log: error.log
+    debug_log: debug.log
+
+apiserver:
+    listen: 0.0.0.0
+    port: 10029
+
+    storage:
+        backend: mysql
+        host: localhost
+        port: 3306
+        password: null
+        db: statstudio
+        charset: utf8
+
+    access_control:
+        register: True
+        anonymous_group_info: True
+        user_initial_access:
+          - auth
+          - read_self
+          - read_internal
+          - read_other
+          - write_self
+          - read_group
+        app_initial_access:
+          - auth
+          - read_self
+
+    redis:
+        host: localhost
+        port: 6379
+        db: 0
+        prefix: STARSSO
+
+    dashboard:
+        enabled: True
+        url_root: http://sso.local.com/
+
+    password_salt: 
+        storage: file
+        permission: 0600
+        salt: ./password_salt
+
+
+
+agent:
+    listen: 0.0.0.0
+    port: 10029
+    register_token: e711230222eb453f93c72d4db2ea0ea3
+    network_id: af937a0353294eb4aa05302f61bc1aec
+    apiserver_root: http://sso.local.com/
+
+    discover:
+        track_interval: 5
+        probe_timeout: 5
+        probe_interval: 5
+
+        interface: wlp3s0
+
+debug: false
+
+token:
+    key:
+        storage: yaml
+        
+        private: | 
+            -----BEGIN PRIVATE KEY-----
+            MIICdgIBADANBgkqhkiG9w0BAQEFAASCAmAwggJcAgEAAoGBAPVO1jYnNvWPEGkO
+            XeXAwSP/yQ2yb68AnRgACpk1Bm77eVDbapc2UrPmkZSdeEqrhBu01DMSnf7jMJTt
+            Js4gFXcTwcj7GQTm05IfcaNJY2XabLJJ4Im9XlVb1ZLpR4GPiLLthjcUM2OK25gg
+            jjQAWcJVEadZosRI8bJ/Aq532zzPAgMBAAECgYBk2FobvRdM79lxNuTHFOzRnc/L
+            f7WGHhx2x12UCkZwzZTb9rflHgH1zy2+CNZw6/3NXhN2Q4sMQ92u+6deSbZIhZdU
+            LUtUZemodG1oeG9gdFyVecpLGuWcPt3WcwTO3dQhungKHJWYZ+ab4ykjIovDEe1X
+            cN7Kaa2e0bsJQ2WSoQJBAP6dU03ghDIXq/WoVwCxzUVdNBL5j98Zn9AEj6ALr1iV
+            2m/QKkQzbz+H2uSuU/DppFG70eZRtGagvvnGwgOingkCQQD2pIwiGUNx6ofnVNWR
+            nNq8p5AX7aNLcDeL6SKYnpqaf/2x3BcRkM+Ls8lNsLlaRC8jbcP75QhHMCCCMeFV
+            KToXAkBN/Q6JKh4T4eBQLLIJimyftH7A2SRSZ9zlsJ/1m96nua7g1Ng9b6vBv/Ey
+            XptjjY1BY9BVRe2GCfK1O0YuKt9RAkBXn5/VYWpPp0W/DqmNQM+JJHKRvbA81dI2
+            F45d8EL2zq/fp1Revjat6CKFQlqnUf/5Mz7kV7r4J4X1Gyl1qt7jAkEA42COdyBO
+            bIUKoL5Zk57LUdks1n67FS5rJ8XITtT9TZeR53u6baN/JjjXYuSFEIcIJjls6oOd
+            S+ONEbow+lgx/Q==
+            -----END PRIVATE KEY-----
+
+        public: |
+            -----BEGIN PUBLIC KEY-----
+            MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD1TtY2Jzb1jxBpDl3lwMEj/8kN
+            sm+vAJ0YAAqZNQZu+3lQ22qXNlKz5pGUnXhKq4QbtNQzEp3+4zCU7SbOIBV3E8HI
+            +xkE5tOSH3GjSWNl2myySeCJvV5VW9WS6UeBj4iy7YY3FDNjituYII40AFnCVRGn
+            WaLESPGyfwKud9s8zwIDAQAB
+            -----END PUBLIC KEY-----
+
+    config:
+      - usage: auth
+        expire_timeout: 86400        
+        
+      - usage: application
+        expire_timeout: 86400
+        
+
