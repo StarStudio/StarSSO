@@ -70,7 +70,7 @@ class Config(dict):
             :params:
                 
         '''
-        if _raw is None:
+        if _raw is None or len(_raw) < 1:
             return
         self.update(yaml.load(_raw))
 
