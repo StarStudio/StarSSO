@@ -18,7 +18,7 @@ class DeviceList:
 
     def Snapshot(self):
         '''
-            Create a snapshot of device list.
+            Create a snapshot of device list. (OLD)
 
             :return:
                 A dict with MAC key and a set of IPv4 address as value.
@@ -72,7 +72,69 @@ class DeviceList:
             ip_set.add(ip)
 
         return devices
-        
+
+
+    def Snapshot2(self):
+        '''
+            Create a snapshot of device list
+
+            :return:
+                {
+                    'af8fb2c15d3249c5b5d9dd9e7e48f51e': {
+                        'AA:BB:CC:DD:EE:FF': set(['1.2.3.4', '5.6.7.8'])
+                        , ...
+                    }
+                    , ...
+                }
+        '''
+        # KEYS:
+        #   1: publish_set 
+        REDIS_GET_LUA = '''
+            local publishes = redis.call('smembers', KEYS[1])
+            if false == publishes or #publishes == 0 then
+                return {}
+            end
+
+            local final_devices = {}
+            for i = 1, #publishes, 1 do 
+                repeat
+                    local devices = redis.call('smembers', publishes[i])
+                    if false == devices or #devices == 0 then
+                        redis.call('srem', KEYS[1], publishes[i])
+                        break
+                    end
+                    for j = 1, #devices, 1 do
+                        repeat
+                            if devices[j] == '' then
+                                break
+                            end
+                            table.insert(final_devices, devices[j])
+                        until true
+                    end
+                until true
+            end
+            return final_devices
+        '''
+        devices = {}
+
+        publish_list = self._redis.eval(REDIS_GET_LUA, 1, self._config.redis_prefix + '_landev_publishers')
+        for raw_item in publish_list:
+            splited = raw_item.decode('ascii').split(',')
+            if len(splited) != 3:
+                print('Wrong publish format: %s' % raw_item)
+                continue
+            ip, mac, nid = splited
+
+            if nid not in devices:
+                devices[nid] = {}
+            net = devices[nid]
+            if mac not in net:
+                net[mac] = set()
+            ips = net[mac]
+            ips.add(ip)
+
+        return devices
+
 
     def NewListener(self):
         '''

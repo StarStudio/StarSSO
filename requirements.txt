@@ -5,3 +5,5 @@ pymysql
 redis
 jwcrypto
 gunicorn
+pyyaml
+click

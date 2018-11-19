@@ -35,6 +35,9 @@ def api_user_pending(_data = ''):
 def api_wrong_params(_error = ''):
     return jsonify({'code': 1422, 'msg': _error, 'data': ''})
 
+def api_not_avaliable(_msg = 'Not avaliable.'):
+    return jsonify({'code': 1402, 'msg': _msg, 'data': ''})
+
 def try_http_bearer_auth():
     auth_header = request.headers.get('Authorization', None)
     if None is auth_header:

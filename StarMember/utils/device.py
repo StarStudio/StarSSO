@@ -1,5 +1,5 @@
 from flask import request
-from LANDevice.utils import IPv4ToInt
+from StarMember.agent.utils import IPv4ToInt
 
 
 def get_real_remote_address():

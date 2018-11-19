@@ -15,9 +15,7 @@ class MyselfDeviceView(SignAPIView):
                 ctx.Suspend()
                 return ctx.RedirectForDeviceInfo()
         elif not ctx.Net or not ctx.MAC or not ctx.LocalIP:
-            return api_succeed({
-                'data': None
-            })
+            return api_succeed(None)
 
         #map_device = {ip: mac for mac, ips in current_app.device_list.Snapshot().items() for ip in ips}
         

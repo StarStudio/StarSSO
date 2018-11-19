@@ -17,5 +17,11 @@ setup(
     , data_files = [
         'requirements.txt'
     ]
+    , entry_points = {
+        'console_scripts': [
+            'starsso-server = StarMember.cli:Core'
+            , 'starsso-manage = StarMember.cli:Manage'
+        ]
+    }
 )
 

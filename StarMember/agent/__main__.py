@@ -1,4 +1,5 @@
 import os
+import yaml
 
 from .config import LANDeviceProberConfig
 from .service.discover import LANDeviceProber
@@ -11,8 +12,8 @@ def main():
     if 'API_CFG' not in os.environ:
         print("Environment variable API_CFG not exists.")
         return None
-    else:
-        config.FromEnv('API_CFG')
+    
+    config.FromDict(yaml.load(open(os.environ['API_CFG'], 'rt').read()))
 
     prober = LANDeviceProber(config)
 

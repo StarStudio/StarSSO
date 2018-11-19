@@ -1,8 +1,8 @@
 ---
 log:
-    access_log: access.log
-    error_log: error.log
-    debug_log: debug.log
+    access: access.log
+    error: error.log
+    debug: debug.log
 
 apiserver:
     listen: 0.0.0.0
@@ -12,8 +12,9 @@ apiserver:
         backend: mysql
         host: localhost
         port: 3306
+        user: root
         password: null
-        db: statstudio
+        db: starstudio
         charset: utf8
 
     access_control:
@@ -34,7 +35,7 @@ apiserver:
         host: localhost
         port: 6379
         db: 0
-        prefix: STARSSO
+        prefix: LANDEV_DEFAULT
 
     dashboard:
         enabled: True
@@ -45,27 +46,25 @@ apiserver:
         permission: 0600
         salt: ./password_salt
 
-
-
 agent:
     listen: 0.0.0.0
-    port: 10029
+    port: 8001
     register_token: e711230222eb453f93c72d4db2ea0ea3
     network_id: af937a0353294eb4aa05302f61bc1aec
-    apiserver_root: http://sso.local.com/
+    apiserver_root: http://127.0.0.1:10029
 
     discover:
         track_interval: 5
         probe_timeout: 5
-        probe_interval: 5
-
+        probe_interval: 30
         interface: wlp3s0
+
 
 debug: false
 
 token:
     key:
-        storage: yaml
+        storage: conf
         
         private: | 
             -----BEGIN PRIVATE KEY-----
@@ -85,6 +84,8 @@ token:
             S+ONEbow+lgx/Q==
             -----END PRIVATE KEY-----
 
+        private_permission: 0600
+
         public: |
             -----BEGIN PUBLIC KEY-----
             MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQD1TtY2Jzb1jxBpDl3lwMEj/8kN
@@ -93,11 +94,13 @@ token:
             WaLESPGyfwKud9s8zwIDAQAB
             -----END PUBLIC KEY-----
 
+        public_permission: 0666
+
     config:
-      - usage: auth
-        expire_timeout: 86400        
+        auth:
+            expire_timeout: 86400        
         
-      - usage: application
-        expire_timeout: 86400
+        application:
+            expire_timeout: 86400
         
 

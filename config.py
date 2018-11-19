@@ -69,3 +69,4 @@ LAN_DEV_LIVENESS_PROBE_TIMEOUT = 5                        # 进行设备发现�
                                                           # 设备不存在
 LAN_DEV_LIVENESS_PROBE_INTERVAL = 30                      # 进行设备发现的时间间隔
 LAN_DEV_INTERFACE = 'wlp3s0'                              # 进行设备感知的接口名称
+LAN_DEV_LOCAL_API_PUBLISH_PORT = None                     # 发布

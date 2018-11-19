@@ -1,6 +1,6 @@
 from flask import request, current_app, jsonify
 from StarMember.views import SignAPIView, with_application_token, resource_access_denied
-from LANDevice import LANDeviceProberConfig
+from StarMember.agent import LANDeviceProberConfig
 
 class DeviceListView(SignAPIView):
     method = ['GET']

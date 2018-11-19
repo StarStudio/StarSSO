@@ -7,10 +7,10 @@ shim_api = Blueprint('Shims', __name__, url_prefix = '/v1/star/shim')
 shim_api.add_url_rule('/information', view_func = InformationShimView.as_view('Information'))
 
 
-@shim_api.before_app_request
-def load_device_list_port():
-    current_app.landev_cfg = LANDeviceProberConfig()
-    current_app.landev_cfg.FromDict(current_app.config)
-    current_app.device_list = DeviceList(current_app.landev_cfg)
+#@shim_api.before_app_request
+#def load_device_list_port():
+#    current_app.landev_cfg = LANDeviceProberConfig()
+#    current_app.landev_cfg.FromDict(current_app.config)
+#    current_app.device_list = DeviceList(current_app.landev_cfg)
 
 
