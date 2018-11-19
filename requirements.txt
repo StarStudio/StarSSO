@@ -7,3 +7,4 @@ jwcrypto
 gunicorn
 pyyaml
 click
+gevent
