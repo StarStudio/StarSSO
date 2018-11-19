@@ -19,8 +19,8 @@ setup(
     ]
     , entry_points = {
         'console_scripts': [
-            'starsso-server = StarMember.cli:Core'
-            , 'starsso-manage = StarMember.cli:Manage'
+            'starsso-server = StarMember.cli.server:Core'
+            , 'starsso-manage = StarMember.cli.manage:Manage'
         ]
     }
 )
