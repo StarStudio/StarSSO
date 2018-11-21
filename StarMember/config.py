@@ -1,8 +1,11 @@
 import yaml
 import os
+
 from jwcrypto.jwk import JWK
 from jwcrypto.common import JWException
 from base64 import b64encode
+from os.path import isfile
+
 
 def stringwise_representer(dumper, data):
     if isinstance(data, str) and '\n' in data:
@@ -71,9 +74,25 @@ class Config(dict):
                 
         '''
         if _raw is None or len(_raw) < 1:
-            return
+            return self
         self.update(yaml.load(_raw))
+        return self
 
+
+    def LoadFromFile(self, _path):
+        if not isfile(_path):
+            os.makedirs(os.path.dirname(_path))
+            open(_path, 'wt').close()
+            return self
+
+        return self.Load(open(_path, 'rt').read())
+
+        
+
+    def DumpToFile(self, _path):
+        open(_path, 'wt').write(self.Dump())
+            
+        
     def Dump(self):
         '''
             Dump configure.

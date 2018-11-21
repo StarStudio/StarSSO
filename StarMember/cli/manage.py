@@ -19,9 +19,10 @@ from StarMember.cli.common import table_print
 
 
 def load_configure(config_path):
-    return Config(open(config_path, 'rt').read())
+    return Config().LoadFromFile(config_path)
 
-def load_wsgi_app(_config, _mode = os.environ.get('STARSSO_SERVER_MODE', 'APIServer')):
+
+def load_wsgi_app(_config, _save_config = False, _mode = os.environ.get('STARSSO_SERVER_MODE', 'APIServer')):
     config_map = load_configure(_config)
     tmp_wrapper = NamedTemporaryFile('wt')
     io = tmp_wrapper.file
@@ -35,6 +36,8 @@ def load_wsgi_app(_config, _mode = os.environ.get('STARSSO_SERVER_MODE', 'APISer
     if app is None:
         return None
     app._temp_config_wrapper = tmp_wrapper
+    if _save_config:
+        config_map.DumpToFile(_config)
     return app
 
 def common_options(_callable):
@@ -46,6 +49,8 @@ def common_options(_callable):
     for option in options:
         _callable = option(_callable)
     return _callable
+
+
 @click.group()
 def Manage():
     pass
@@ -59,10 +64,10 @@ def account():
 
 @account.command('reset-admin', help = 'Reset administrator account.')
 @common_options
-@click.option('--persist-conf/--no-persist-conf', help = 'If save changes to original configure file.', default = False)
+@click.option('--persist/--no-persist', help = 'If save changes to original configure file.', default = False)
 def reset_admin_account(config, persist_conf):
     try:
-        app = load_wsgi_app(config)
+        app = load_wsgi_app(config, persist_conf)
     except ConfigureError as e:
         click.echo(e)
         return 1
@@ -107,7 +112,7 @@ def application():
 @common_options
 def reset_admin_application(config, persist_conf):
     try:
-        app = load_wsgi_app(config)
+        app = load_wsgi_app(config, persist_conf)
     except ConfigureError as e:
         click.echo(e)
         return 1
@@ -149,7 +154,7 @@ def network_token():
 @common_options
 def list_network_token(config, persist_conf):
     try:
-        app = load_wsgi_app(config)
+        app = load_wsgi_app(config, persist_conf)
     except ConfigureError as e:
         click.echo(e)
         return 1
@@ -168,7 +173,7 @@ def list_network_token(config, persist_conf):
 @common_options
 def new_network_token(config, persist_conf):
     try:
-        app = load_wsgi_app(config)
+        app = load_wsgi_app(config, persist_conf)
     except ConfigureError as e:
         click.echo(e)
         return 1
@@ -184,7 +189,7 @@ def new_network_token(config, persist_conf):
 @click.argument('tokens', nargs = -1)
 def delete_network_token(config, persist_conf, tokens):
     try:
-        app = load_wsgi_app(config)
+        app = load_wsgi_app(config, persist_conf)
     except ConfigureError as e:
         click.echo(e)
         return 1
@@ -211,7 +216,3 @@ def delete_network_token(config, persist_conf, tokens):
         for del_token in to_deletes:
             remove_token(del_token)
             click.echo('Remove token: %s' % del_token)
-    
-    
-
-Manage()
