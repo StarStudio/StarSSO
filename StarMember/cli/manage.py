@@ -4,6 +4,7 @@ import click
 import sys
 import os
 import yaml
+import shutil
 from tempfile import NamedTemporaryFile
 
 sys.path.append(os.getcwd())
@@ -11,7 +12,10 @@ sys.path.append(os.getcwd())
 from StarMember.config import Config, ConfigureError
 from StarMember.wsgi import WSGIAppFactory
 from StarMember.utils.security import password_hash
+from StarMember.utils.lan_register_token import get_avaliable_token, new_register_token, append_new_token, remove_token
 from flask import current_app
+
+from StarMember.cli.common import table_print
 
 
 def load_configure(config_path):
@@ -32,8 +36,16 @@ def load_wsgi_app(_config, _mode = os.environ.get('STARSSO_SERVER_MODE', 'APISer
         return None
     app._temp_config_wrapper = tmp_wrapper
     return app
- 
 
+def common_options(_callable):
+    options = [ 
+        click.option('-c', '--config', help = 'Use specfied configure file.', default = '/etc/starsso/apiserver.yml', type = str, show_default = True)
+        , click.option('--persist-conf/--no-persist-conf', help = 'If save changes to original configure file.', default = False)
+    ]
+
+    for option in options:
+        _callable = option(_callable)
+    return _callable
 @click.group()
 def Manage():
     pass
@@ -46,7 +58,7 @@ def account():
 
 
 @account.command('reset-admin', help = 'Reset administrator account.')
-@click.option('-c', '--config', help = 'Use specfied configure file.', default = '/etc/starsso/apiserver.yml', type = str, show_default = True)
+@common_options
 @click.option('--persist-conf/--no-persist-conf', help = 'If save changes to original configure file.', default = False)
 def reset_admin_account(config, persist_conf):
     try:
@@ -92,8 +104,7 @@ def application():
     pass
 
 @application.command('reset-admin', help = 'Reset administrator account.')
-@click.option('-c', '--config', help = 'Use specfied configure file.', default = '/etc/starsso/apiserver.yml', type = str, show_default = True)
-@click.option('--persist-conf/--no-persist-conf', help = 'If save changes to original configure file.', default = False)
+@common_options
 def reset_admin_application(config, persist_conf):
     try:
         app = load_wsgi_app(config)
@@ -135,7 +146,72 @@ def network_token():
     pass
 
 @network_token.command('list')
-def list_network_token():
-    print('token list')
+@common_options
+def list_network_token(config, persist_conf):
+    try:
+        app = load_wsgi_app(config)
+    except ConfigureError as e:
+        click.echo(e)
+        return 1
+
+    with app.app_context():
+        tokens = get_avaliable_token()
+        col, lin = shutil.get_terminal_size()
+        box_size = (10, col - 4 - 10)
+        margin = (2, 2)
+        table_print(('Index', 'Token'), box_size, margin)
+        for i in range(0, len(tokens)):
+            table_print((i + 1, tokens[i]), box_size, margin)
+
+
+@network_token.command('new')
+@common_options
+def new_network_token(config, persist_conf):
+    try:
+        app = load_wsgi_app(config)
+    except ConfigureError as e:
+        click.echo(e)
+        return 1
+    
+    with app.app_context():
+        new_token = new_register_token()
+        append_new_token(new_token)
+        click.echo('New register token: %s' % new_token)
+
+
+@network_token.command('delete')
+@common_options
+@click.argument('tokens', nargs = -1)
+def delete_network_token(config, persist_conf, tokens):
+    try:
+        app = load_wsgi_app(config)
+    except ConfigureError as e:
+        click.echo(e)
+        return 1
+
+    to_deletes = set()
+    invalid = False
+    with app.app_context():
+        currents = get_avaliable_token()
+        for token in tokens:
+            match = None
+            for current in currents:
+                if current.startswith(token):
+                    if match is not None:
+                        click.echo('Invalid token: %s' % current)
+                        invalid = True
+                        match = None
+                        break
+                    match = current
+            if match is not None:
+                to_deletes.add(match)
+            else:
+                click.echo('Token not found: %s' % token)
+
+        for del_token in to_deletes:
+            remove_token(del_token)
+            click.echo('Remove token: %s' % del_token)
+    
+    
 
 Manage()
