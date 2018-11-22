@@ -8,8 +8,6 @@ from jwcrypto.jwt import JWTExpired
 from flask import current_app, request, redirect
 from werkzeug.urls import url_encode
 
-
-import ipdb
 class InformationShimView(SignAPIView):
     method = ['GET']
 
@@ -20,7 +18,6 @@ class InformationShimView(SignAPIView):
             return api_wrong_params('Token missing.')
 
         try:
-            ipdb.set_trace()
             token = APIToken.FromString(token)
         except (InvalidJWSSignature, JWTExpired, ValueError) as e:
             return api_wrong_params('Invalid Token.')
