@@ -4,7 +4,7 @@ import os
 from jwcrypto.jwk import JWK
 from jwcrypto.common import JWException
 from base64 import b64encode
-from os.path import isfile
+from os.path import isfile, isdir
 
 
 def stringwise_representer(dumper, data):
@@ -81,7 +81,8 @@ class Config(dict):
 
     def LoadFromFile(self, _path):
         if not isfile(_path):
-            os.makedirs(os.path.dirname(_path))
+            if not isdir(os.path.dirname(_path)) and os.path.dirname(_path) != '':
+                os.makedirs(os.path.dirname(_path))
             open(_path, 'wt').close()
             return self
 

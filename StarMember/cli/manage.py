@@ -55,6 +55,32 @@ def common_options(_callable):
 def Manage():
     pass
 
+# Configure Management
+@Manage.group()
+def config():
+    pass
+
+@config.command('init', help = 'Initialize configure file.')
+@click.option('-c', '--config', help = 'Use specfied configure file.', default = '/etc/starsso/apiserver.yml', type = str, show_default = True)
+@click.option('--agent', help = 'Agent mode', is_flag = True)
+def config_init(config, agent):
+    try:
+        if agent:
+            app = load_wsgi_app(config, True, _mode = 'Agent')
+        else:
+            app = load_wsgi_app(config, True)
+    except ConfigureError as e:
+        click.echo(e)
+        return 1
+    return 0
+
+
+@config.command('edit', help = 'Edit and autoreload server.')
+@click.option('-c', '--config', help = 'Use specfied configure file.', default = '/etc/starsso/apiserver.yml', type = str, show_default = True)
+def config_edit(config):
+    click.echo('Not supported')
+
+
 
 # Account Management
 @Manage.group()
