@@ -64,7 +64,6 @@ def account():
 
 @account.command('reset-admin', help = 'Reset administrator account.')
 @common_options
-@click.option('--persist/--no-persist', help = 'If save changes to original configure file.', default = False)
 def reset_admin_account(config, persist_conf):
     try:
         app = load_wsgi_app(config, persist_conf)

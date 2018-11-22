@@ -3,16 +3,14 @@ FROM python:3.6.6-alpine3.7
 RUN set -xe;\
     sed -Ei "s/dl-cdn\.alpinelinux\.org/mirrors.tuna.tsinghua.edu.cn/g" /etc/apk/repositories; \
     mkdir /apk-cache; \
-    apk add supervisor gettext py-cffi bash libffi-dev openssl-dev musl-dev --cache-dir /apk-cache; \
+    apk add gettext py-cffi bash libffi-dev openssl-dev musl-dev --cache-dir /apk-cache; \
     rm -rf /apk-cache; \
     rm /etc/localtime; \
     ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime
     
 ARG DIST_VERSION
-ARG LANDEV_DIST_VERSION
 
 COPY ./dist/StarSSO.tar.gz /docker-build/
-#COPY ./dist/LANDevice.tar.gz /docker-build/
 
 RUN set -xe;\
     echo [easy_install] >> ~/.pydistutils.cfg ;\
@@ -20,20 +18,20 @@ RUN set -xe;\
     mkdir /apk-cache; \
     apk add gcc g++ linux-headers --cache-dir /apk-cache -t build-deps; \
     cd /docker-build; \
-    tar -xvzf LANDevice.tar.gz; \
     tar -xvzf StarSSO.tar.gz ;\
-    cd LANDevice-$LANDEV_DIST_VERSION; \
-    python ./setup-landevice.py install; \
     cd /docker-build/StarSSO-$DIST_VERSION; \
-    apk add;\
     python ./setup.py install; \
-    pip install gunicorn ;\
     apk del build-deps; \
     rm -rf /apk-cache; \
     rm -rf /docker-build; \
-    mkdir /etc/StarSSO
+    mkdir /etc/starsso; \
+    mkdir /var/log/starsso
 
-COPY ./Docker/conf-sso/* /data/
-COPY ./Docker/Entrypoint-SSO.sh /entrypoint.sh
+COPY ./Docker/env_default.sh /env_default.sh
+COPY ./Docker/apiserver/entrypoint.sh /entrypoint.sh
+COPY ./Docker/apiserver/apiserver.yml.tmpl /data/apiserver.yml.tmpl
+
+RUN set -xe; \
+    chmod a+x /entrypoint.sh
 
 ENTRYPOINT ["/entrypoint.sh"]

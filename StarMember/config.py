@@ -47,9 +47,9 @@ class Config(dict):
         , ('apiserver', 'access_control', 'app_initial_access'): ['auth', 'read_self']
         , ('apiserver', 'dashboard', 'url_root'): 'http://sso.local.com'
 
-        , ('log', 'access'): 'access'
-        , ('log', 'error'): 'error'
-        , ('log', 'debug'): 'debug'
+        , ('log', 'access'): '/var/log/starsso/access.log'
+        , ('log', 'error'): '/var/log/starsso/error.log'
+        , ('log', 'debug'): '/var/log/starsso/debug.log'
 
         , ('rpc',): '/var/run/starsso_rpc.sock'
 
