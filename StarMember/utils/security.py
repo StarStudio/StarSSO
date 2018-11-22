@@ -80,6 +80,7 @@ class APIToken(JWT):
                 if _key_getter:
                     kwargs['key'] = flask_jwt_key_getter()
 
+            print(kwargs)
             super().__init__(**kwargs)
             return
         if _token_type not in APIToken.TOKEN_CLASS_REGISTRY:

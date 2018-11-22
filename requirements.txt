@@ -8,3 +8,6 @@ gunicorn
 pyyaml
 click
 gevent
+netifaces
+requests
+apscheduler

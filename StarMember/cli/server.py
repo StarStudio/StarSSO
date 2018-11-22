@@ -95,7 +95,7 @@ class StarSSO:
     def BootstrapLANDevice(self, args, _block = True):
         print('Bootstraping LANDevice...')
         config = self.generate_api_configure(args)
-        conf_name = '/tmp/starsso_prber_' + str(uuid.uuid4()).replace('-', '')
+        conf_name = '/tmp/starsso_prober_' + str(uuid.uuid4()).replace('-', '')
         conf = open(conf_name, 'wt')
         conf.write(yaml.dump(self._cfg.AgentWSGIConfig))
         envs = os.environ.copy()

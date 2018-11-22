@@ -99,37 +99,40 @@ class WSGIAppFactory:
 
 
     def _load_jwt_key(self):
-        key_path = current_app.config.get('SECRET_KEY_FILE', 'jwt.pri')
-        if key_path is None:
-            raise RuntimeError('SECRET_KEY_FILE not configured.')
-        try:
-            key_io = open(key_path, 'rb')
-        except FileNotFoundError as e:
-            key_io = None
-    
-        if key_io is None:
-            key_io = open(key_path, 'wb+') 
-            key = JWK(generate='RSA', size=1024)
-            pem = key.export_to_pem(private_key=True, password = None)
-            key_io.write(pem)
-        else:
-            pem = key_io.read()
-            key = JWK()
-            key.import_from_pem(pem)
-        key_io.close()
-        os.chmod(key_path, current_app.config.get('SECRET_KEY_FILE_MODE', 0o600))
-        pub_key_path = current_app.config.get('PUBLIC_KEY_FILE', None)
-        if pub_key_path is not None:
-            if not os.path.isfile(pub_key_path):
-                try:
-                    pub_io = open(pub_key_path, 'wb+')
-                    pem = key.export_to_pem()
-                    pub_io.write(pem)
-                    pub_io.close()
-                except PermissionError as e:
-                    pass
-            os.chmod(pub_key_path, current_app.config.get('PUBLIC_KEY_FILE_MODE', 0o666))
+        key = JWK()
+        key.import_from_pem(self._app.config.get('TOKEN_PEM'))
         return key
+        #key_path = current_app.config.get('SECRET_KEY_FILE', 'jwt.pri')
+        #if key_path is None:
+        #    raise RuntimeError('SECRET_KEY_FILE not configured.')
+        #try:
+        #    key_io = open(key_path, 'rb')
+        #except FileNotFoundError as e:
+        #    key_io = None
+    
+        #if key_io is None:
+        #    key_io = open(key_path, 'wb+') 
+        #    key = JWK(generate='RSA', size=1024)
+        #    pem = key.export_to_pem(private_key=True, password = None)
+        #    key_io.write(pem)
+        #else:
+        #    pem = key_io.read()
+        #    key = JWK()
+        #    key.import_from_pem(pem)
+        #key_io.close()
+        #os.chmod(key_path, current_app.config.get('SECRET_KEY_FILE_MODE', 0o600))
+        #pub_key_path = current_app.config.get('PUBLIC_KEY_FILE', None)
+        #if pub_key_path is not None:
+        #    if not os.path.isfile(pub_key_path):
+        #        try:
+        #            pub_io = open(pub_key_path, 'wb+')
+        #            pem = key.export_to_pem()
+        #            pub_io.write(pem)
+        #            pub_io.close()
+        #        except PermissionError as e:
+        #            pass
+        #    os.chmod(pub_key_path, current_app.config.get('PUBLIC_KEY_FILE_MODE', 0o666))
+        #return key
 
 
     def load_network_id(self):
@@ -245,10 +248,8 @@ class WSGIAppFactory:
         self._generate_logger()
 
         # Preprocess 
-        def load_jwt_key():
-            current_app.jwt_key = self._load_jwt_key()
+        app.jwt_key = self._load_jwt_key()
 
-        app.before_first_request(load_jwt_key)
 
 
     def _load_apiserver_components(self):
