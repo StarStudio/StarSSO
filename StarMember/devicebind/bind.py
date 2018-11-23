@@ -80,7 +80,7 @@ class BindView(SignAPIView):
         return api_succeed([{'uid': uid, 'mac' : list(mac_set)} for uid, mac_set in result.items()])
 
     def bind_device(self, ctx):
-        devices = current_app.device_list.Snapshot2().items()
+        devices = current_app.device_list.Snapshot2()
         if not ctx.Net \
            or ctx.Net.ID not in devices \
            or not ctx.MAC \
