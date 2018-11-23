@@ -13,6 +13,8 @@ sys.path.append(os.getcwd())
 
 from StarMember.config import Config
 
+def wait_fibre(popen):
+    popen.wait()
 
 class StarSSO:
     parser = argparse.ArgumentParser(
@@ -50,6 +52,7 @@ class StarSSO:
         if _mode == 'APIServer':
             conf_dict = yaml.dump(self._cfg.MasterWSGIConfig)
             conf_file.write(conf_dict)
+
         elif _mode == 'Agent':
             conf_dict = yaml.dump(self._cfg.AgentWSGIConfig)
             if isinstance(args.register_token, str):
@@ -106,12 +109,25 @@ class StarSSO:
             result = subprocess.run(run_args, env = envs)
             return result
         return subprocess.Popen(run_args, env = envs)
+
+
+    def BootstrapCheckbot(self, args, _block = True):
+        print('Bootstraping CheckBot...')
+        config = self.generate_api_configure(args)
+        conf_name = '/tmp/starsso_checkbot_' + str(uuid.uuid4()).replace('-', '')
+        conf = open(conf_name, 'wt')
+        conf.write(yaml.dump(self._cfg.MasterWSGIConfig))
+        envs = os.environ.copy()
+        run_args = ['python', '-m', 'StarMember.checkbot']
+        if args.config is not None:
+            envs['API_CFG'] = conf_name
+        if _block is True:
+            result = subprocess.run(run_args, env = envs)
+            return result
+        return subprocess.Popen(run_args, env = envs)
             
     
     def RunAgent(self, args):
-        def wait_fibre(popen):
-            popen.wait()
-
         api_proc = self.BootstrapAPIServer(args, _mode = 'Agent', _block = False)
         landevice_proc = self.BootstrapLANDevice(args, _block = False)
         gevent.wait([
@@ -121,12 +137,16 @@ class StarSSO:
 
         api_proc.terminate()
         landevice_proc.terminate()
-        print('API Server exit with: %d' % api_proc.returncode)
-        print('Device prober exit with: %d' % landevice_proc.returncode)
+        if api_proc.returncode is None:
+            api_proc.returncode = 0
+        if landevice_proc.returncode is None:
+            landevice_proc.returncode = 0
+        print('API Server exit with: %s' % str(api_proc.returncode))
+        print('Device prober exit with: %s' % str(landevice_proc.returncode))
         if api_proc.returncode != 0 or api_proc.returncode != 0:
             return 2
+        return 0
 
-        
     def generate_api_configure(self, args):
         MAP_OPTS = {
             'access_log': 'ACCESS_LOG'
@@ -141,8 +161,25 @@ class StarSSO:
             
 
     def RunNormal(self, args):
-        result = self.BootstrapAPIServer(args)
-        return result.returncode
+        api_proc = self.BootstrapAPIServer(args, _mode = 'APIServer', _block = False)
+        checkbot_proc = self.BootstrapCheckbot(args, _block = False)
+        gevent.wait([
+                    gevent.spawn(wait_fibre, api_proc)
+                    , gevent.spawn(wait_fibre, checkbot_proc)
+                ], count = 1)
+
+        api_proc.terminate()
+        checkbot_proc.terminate()
+        if api_proc.returncode is None:
+            api_proc.returncode = 0
+        if checkbot_proc.returncode is None:
+            checkbot_proc.returncode = 0
+
+        print('API Server exit with: %s' % str(api_proc.returncode))
+        print('Checkbot exit with: %s' % str(checkbot_proc.returncode))
+        if api_proc.returncode != 0 or checkbot_proc.returncode != 0:
+            return 2
+        return 0
         
     
     def generate_gunicorn_options(self, _mode, args):

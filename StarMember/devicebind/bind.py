@@ -61,46 +61,6 @@ class BindView(SignAPIView):
                             del result[uid]
                     else:
                         result = {request.auth_user_id: result[request.auth_user_id]} if request.auth_user_id in result else {}
-            #if 'uid' in post_data:
-            #    if request.auth_user_id != post_data['uid']:
-            #        affected = c.execute('select gid from group_members where uid = %s', (request.auth_user_id,))
-            #        if affected < 1:
-            #            return api_user_pending()
-            #        my_gid = int(c.fetchall()[0][0])
-            #        
-            #        affected = c.execute('select gid from group_members where uid = %s', (post_data['uid']))
-            #        if affected < 1:
-            #            return api_user_pending()
-            #        gid = int(c.fetchall()[0][0])
-            #        if my_gid != gid:
-            #            if 'read_other' not in request.app_verbs:
-            #                return api_succeed([])
-            #        elif 'read_internal' not in request.app_verbs:
-            #            return api_succeed([])
-            #        
-            #    if 'gid' in post_data:
-            #        affected = c.execute('select device_bind.mac, device_bind.uid from device_bind inner join group_members on device_bind.uid=group_members.uid where device_bind.uid = %s and group_members.gid = %s', (post_data['uid'], post_data['gid']))
-            #    else:
-            #        affected = c.execute('select mac, uid from device_bind where uid = %s', (post_data['uid'], ))
-            #        
-            #    mac_rows = c.fetchall()
-            #else:
-            #    affected = c.execute('select gid from group_members where uid = %s', (request.auth_user_id,))
-            #    if affected < 1:
-            #        return api_user_pending()
-            #    my_gid = int(c.fetchall()[0][0])
-            #    
-            #    if 'gid' in post_data:
-            #        if post_data['gid'] != my_gid:
-            #            if 'read_other' not in request.app_verbs:
-            #                return api_succeed([])
-            #        elif 'read_internal' not in request.app_verbs:
-            #            return api_succeed([])
-            #        
-            #        affected = c.execute('select mac, uid from device_bind where uid in (select uid from group_members where gid = %s)', (post_data['gid'],))
-            #        mac_rows = c.fetchall()
-            #    else:
-            #        affected = c.execute('select mac, uid from device_bind')
                     
         except Exception as e:
             conn.rollback()

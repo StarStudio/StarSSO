@@ -9,6 +9,9 @@ class CheckBotConfig:
             , ('mysql_password', 'MYSQL_DATABASE_PASSWORD', (str, type(None)))
             , ('mysql_db', 'MYSQL_DATABASE_DB', str)
             , ('mysql_charset', 'MYSQL_DATABASE_CHARSET', str)
+            , ('redis_host', 'REDIS_HOST', str)
+            , ('redis_port', 'REDIS_PORT', int)
+            , ('redis_prefix', 'LAN_DEV_REDIS_PROBER_IDENT_PREFIX', str)
         ])
 
     mysql_port = 3306
@@ -17,6 +20,9 @@ class CheckBotConfig:
     mysql_password = None
     mysql_db = 'starstudio'
     mysql_charset = 'utf8'
+    redis_host = 'localhost'
+    redis_port = 6379
+    redis_prefix = 'LANDEV_DEFAULT'
 
     def FromEnv(self, _env):
         '''

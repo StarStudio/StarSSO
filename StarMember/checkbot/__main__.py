@@ -1,8 +1,12 @@
 import os
 import pymysql
 import gevent
+import yaml
+import uuid
+import redis
+
 from datetime import datetime, timedelta
-from LANDevice import LANDeviceProberConfig, DeviceList
+from StarMember.utils.network import NetworkList
 from .config import CheckBotConfig
 from .utils import MACToInt, IntToMAC
 
@@ -140,26 +144,46 @@ class CheckBot:
 
 
     def Run(self):
-        config = LANDeviceProberConfig()
         cb_config = CheckBotConfig()
     
         print('Checking dog start.')
+        bot_id = str(uuid.uuid4()).replace('-', '')
+        print('Bot ID: %s' % bot_id)
     
-        if 'CHECK_BOT_CONFIG' not in os.environ:
-            print("Environment variable CHECK_BOT_CONFIG not exists.")
+        if 'API_CFG' not in os.environ:
+            print("Environment variable API_CFG not exists.")
             return None
         else:
-            config.FromEnv('CHECK_BOT_CONFIG')
-            cb_config.FromEnv('CHECK_BOT_CONFIG')
+            #cb_config.FromEnv('API_CFG')
+            cb_config.FromDict(yaml.load(open(os.environ['API_CFG']).read()))
 
         self._config = cb_config
     
         self.mysql_connect = create_bundle_pymysql_connect(cb_config)
         conn = self.mysql_connect()
     
-        dev_list = DeviceList(config)
-        listener = dev_list.NewListener()
+        #dev_list = DeviceList(config)
+        dev_list = NetworkList(_redis_host = cb_config.redis_host, _redis_port = cb_config.redis_port, _redis_prefix = cb_config.redis_prefix)
 
+        redis_storage = redis.Redis(host = cb_config.redis_host, port = cb_config.redis_port)
+        # Redis Checkbot client mutex
+        # KEYS:
+        #   1: _prefix
+        #   2: ID`
+        mutex_proc = '''
+            local key=KEYS[1] .. "_checkbot_current"
+            if 1 == redis.call("exists", key) then
+                return false
+            end
+            redis.call("set", key, KEYS[2])
+            redis.call("expire", key, 10)
+            return true
+        '''
+        while not redis_storage.eval(mutex_proc, 2, cb_config.redis_prefix, bot_id):
+            print('Other bot is running.')
+            gevent.sleep(10)
+
+        print('Bot Mutex acquired. Start watching.') 
         gevent.spawn(self.device_leave_routine)
 
         while True:
@@ -183,6 +207,7 @@ class CheckBot:
 
             self.last_mac_list = fresh_mac_list
             gevent.sleep(1)
+            redis_storage.set(cb_config.redis_prefix + '_checkbot_current', bot_id, ex = 10)
     
 
 if __name__ == '__main__':
