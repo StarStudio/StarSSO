@@ -84,12 +84,16 @@ class BindView(SignAPIView):
         if not ctx.Net \
            or ctx.Net.ID not in devices \
            or not ctx.MAC \
-           or ctx.MAC in devices[ctx.Net.ID]:
+           or ctx.MAC not in devices[ctx.Net.ID]:
             return api_wrong_params('Device not found.')
         
         if not ctx.LocalIP \
             or ctx.LocalIP not in devices[ctx.Net.ID][ctx.MAC]:
             return api_wrong_params('Bind another device is not allowed.')
+
+        if 'mac_int' not in ctx:
+            return api_wrong_params('MAC not in context.')
+        mac_int = ctx['mac_int']
 
         conn = current_app.mysql.connect()
         conn.begin()
