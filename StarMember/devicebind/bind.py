@@ -3,6 +3,7 @@ from StarMember.views import SignAPIView, with_application_token, resource_acces
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.utils.network import MACToInt, IntToMAC
 from StarMember.utils.param import get_request_params
+from StarMember.utils.context import APIRequestContext
 from pymysql.err import IntegrityError
 
 class BindView(SignAPIView):
