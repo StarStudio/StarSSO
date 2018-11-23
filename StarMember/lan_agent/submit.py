@@ -1,25 +1,26 @@
-from StarMember.views import SignAPIView, resource_access_denied, param_error, api_succeed
-from StarMember.utils import get_request_params
+from StarMember.views import SignAPIView, param_error, api_succeed
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from flask import current_app
-from .token import verify_register_token, check_register_token
-from .network import Network, new_network_id, InvalidNetworkIDError
+from StarMember.utils.param import get_request_params
+from flask import request, current_app
+from StarMember.utils.network import Network, InvalidNetworkIDError
 
-# /v1/star/local_network/<id:int>/info/agent
-class LANAgentInfo(SignAPIView):
-    method = ['GET', 'DELETE']
-
-# Pigeoned temporarily
-class LANDeviceInfo(SignAPIView):
-    method = ['GET']
-
-
-# /v1/star/local_network/<str:nid>/device
 class LANDeviceSubmit(SignAPIView):
-    method = ['PUT', 'GET']
+    method = ['POST']
 
-    def get(self, nid):
-        return api_succeed('Pigeoned temporarily')
+    def post(self, nid):
+        params = get_request_params()
+        key_checker = post_data_key_checker('devices')
+        ok, err_msg = key_checker(params)
+        if not ok:
+            return param_error(err_msg)
+        devices = params['devices']
+        if not isinstance(devices, list):
+            return param_error('Arg devices has wrong type.')
+        
+        try:
+            net = Network(nid)
+            net.UpdateDevices(devices)
+        except (InvalidNetworkIDError, ValueError) as e:
+            return param_error(str(e))
 
-    def put(self, nid):
-        pass
+        return api_succeed()

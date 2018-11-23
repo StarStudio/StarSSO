@@ -4,4 +4,10 @@ flask-redis
 pymysql
 redis
 jwcrypto
-LANDevice
+gunicorn
+pyyaml
+click
+gevent
+netifaces
+requests
+apscheduler

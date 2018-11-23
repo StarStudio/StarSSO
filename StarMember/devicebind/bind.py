@@ -1,7 +1,9 @@
 from flask import request, current_app, jsonify, abort
 from StarMember.views import SignAPIView, with_application_token, resource_access_denied, api_succeed, api_user_pending, api_wrong_params
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.utils import MACToInt, IntToMAC, get_request_params
+from StarMember.utils.network import MACToInt, IntToMAC
+from StarMember.utils.param import get_request_params
+from StarMember.utils.context import APIRequestContext
 from pymysql.err import IntegrityError
 
 class BindView(SignAPIView):
@@ -9,6 +11,12 @@ class BindView(SignAPIView):
 
     @with_application_token(deny_unauthorization = True)
     def get(self):
+        # Resume context for original bind request
+        ctx = APIRequestContext()
+        if ctx.ResumeFromRequest() and ctx['origin_bind_request'] is True:
+            return self.bind_device(ctx)
+
+
         post_data = get_request_params()
         type_checker = post_data_type_checker(uid = int, gid = int)
         ok, err_msg = type_checker(post_data)
@@ -60,46 +68,6 @@ class BindView(SignAPIView):
                             del result[uid]
                     else:
                         result = {request.auth_user_id: result[request.auth_user_id]} if request.auth_user_id in result else {}
-            #if 'uid' in post_data:
-            #    if request.auth_user_id != post_data['uid']:
-            #        affected = c.execute('select gid from group_members where uid = %s', (request.auth_user_id,))
-            #        if affected < 1:
-            #            return api_user_pending()
-            #        my_gid = int(c.fetchall()[0][0])
-            #        
-            #        affected = c.execute('select gid from group_members where uid = %s', (post_data['uid']))
-            #        if affected < 1:
-            #            return api_user_pending()
-            #        gid = int(c.fetchall()[0][0])
-            #        if my_gid != gid:
-            #            if 'read_other' not in request.app_verbs:
-            #                return api_succeed([])
-            #        elif 'read_internal' not in request.app_verbs:
-            #            return api_succeed([])
-            #        
-            #    if 'gid' in post_data:
-            #        affected = c.execute('select device_bind.mac, device_bind.uid from device_bind inner join group_members on device_bind.uid=group_members.uid where device_bind.uid = %s and group_members.gid = %s', (post_data['uid'], post_data['gid']))
-            #    else:
-            #        affected = c.execute('select mac, uid from device_bind where uid = %s', (post_data['uid'], ))
-            #        
-            #    mac_rows = c.fetchall()
-            #else:
-            #    affected = c.execute('select gid from group_members where uid = %s', (request.auth_user_id,))
-            #    if affected < 1:
-            #        return api_user_pending()
-            #    my_gid = int(c.fetchall()[0][0])
-            #    
-            #    if 'gid' in post_data:
-            #        if post_data['gid'] != my_gid:
-            #            if 'read_other' not in request.app_verbs:
-            #                return api_succeed([])
-            #        elif 'read_internal' not in request.app_verbs:
-            #            return api_succeed([])
-            #        
-            #        affected = c.execute('select mac, uid from device_bind where uid in (select uid from group_members where gid = %s)', (post_data['gid'],))
-            #        mac_rows = c.fetchall()
-            #    else:
-            #        affected = c.execute('select mac, uid from device_bind')
                     
         except Exception as e:
             conn.rollback()
@@ -111,29 +79,21 @@ class BindView(SignAPIView):
 
         return api_succeed([{'uid': uid, 'mac' : list(mac_set)} for uid, mac_set in result.items()])
 
-
-    @with_application_token(deny_unauthorization = True)
-    def post(self):
-        post_data = get_request_params()
-        type_checker = post_data_type_checker(mac = str)
-        key_checker = post_data_key_checker('mac')
-        ok, msg = type_checker(post_data)
-        if not ok:
-            return api_wrong_params(msg)
-        ok, msg = key_checker(post_data)
-        if not ok:
-            return api_wrong_params(msg)
-
-        try:
-            mac_int = MACToInt(post_data['mac'])
-        except ValueError as e:
-            return api_wrong_params(str(e))
-
-        device_lists = {MACToInt(mac): { 'IPs' : list(ips) } for mac, ips in current_app.device_list.Snapshot().items()}
-        if mac_int not in device_lists:
+    def bind_device(self, ctx):
+        devices = current_app.device_list.Snapshot2()
+        if not ctx.Net \
+           or ctx.Net.ID not in devices \
+           or not ctx.MAC \
+           or ctx.MAC not in devices[ctx.Net.ID]:
             return api_wrong_params('Device not found.')
-        if request.remote_addr not in device_lists[mac_int]:
+        
+        if not ctx.LocalIP \
+            or ctx.LocalIP not in devices[ctx.Net.ID][ctx.MAC]:
             return api_wrong_params('Bind another device is not allowed.')
+
+        if 'mac_int' not in ctx:
+            return api_wrong_params('MAC not in context.')
+        mac_int = ctx['mac_int']
 
         conn = current_app.mysql.connect()
         conn.begin()
@@ -150,6 +110,34 @@ class BindView(SignAPIView):
             conn.commit()
 
         return api_succeed()
+        
+
+    @with_application_token(deny_unauthorization = True)
+    def post(self):
+        ctx = APIRequestContext()
+        if not ctx.ResumeFromRequest():
+            post_data = get_request_params()
+            type_checker = post_data_type_checker(mac = str)
+            key_checker = post_data_key_checker('mac')
+            ok, msg = type_checker(post_data)
+            if not ok:
+                return api_wrong_params(msg)
+            ok, msg = key_checker(post_data)
+            if not ok:
+                return api_wrong_params(msg)
+
+            try:
+                mac_int = MACToInt(post_data['mac'])
+            except ValueError as e:
+                return api_wrong_params(str(e))
+
+            if not ctx.MAC:
+                ctx['mac_int'] = mac_int
+                ctx['origin_bind_request'] = True
+                ctx.Suspend()
+                return ctx.RedirectForDeviceInfo()
+
+        return self.bind_device(ctx)
 
 
 class BindManageView(SignAPIView):

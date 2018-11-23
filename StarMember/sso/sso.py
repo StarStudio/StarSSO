@@ -3,6 +3,7 @@ from .login import LoginView
 from .logout import LogoutView
 from .key import PublicKeyView
 
+
 sso_api = Blueprint('Single Sign-on', __name__, url_prefix = '/sso')
 
 sso_api.add_url_rule('/login', view_func=LoginView.as_view('SSOLogin'))

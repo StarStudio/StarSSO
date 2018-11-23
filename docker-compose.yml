@@ -4,8 +4,8 @@ services:
     account_storage:
         image: mysql:8.0.12
         environment:
-          - MYSQL_ROOT_PASSWORD=123456
-          - MYSQL_DATABASE=starstudio
+          - MYSQL_ROOT_PASSWORD=your_password
+          - MYSQL_DATABASE=your_database
         volumes:
           - type: bind
             source: ./member.sql
@@ -15,10 +15,8 @@ services:
             target: /var/lib/mysql
 
 
-    publish-redis:
+    redis:
         image: redis:5.0.0
-        ports:
-          - "10028:6379"
         volumes:
           - type: bind
             source: ./docker-data/redis/data
@@ -26,29 +24,38 @@ services:
             
 
     api-server:
-        image: starsso:1.0.1
+        build:
+            context: ./
+            dockerfile: ./Docker/apiserver/Dockerfile
+            args:
+            - DIST_VERSION=1.0.2
+        image: starsso:1.0.2
         environment: 
-          - REDIS_HOST=publish-redis
-          - MYSQL_HOST=account_storage
-          - MYSQL_PASSWORD=123456
-          - MYSQL_DB=starstudio
-          - MYSQL_USER=root
-          - SERVER_HOST_NAME=sso.test.com
+          - SSO_MYSQL_HOST=account_storage
+          - SSO_MYSQL_PASSWORD=your_password
+          - SSO_MYSQL_DB=your_database
+          - SSO_MYSQL_USER=root
+          - SSO_REDIS_HOST=redis
+          - SSO_API_HOST=http://sso.test.com
         ports:
           - "8000:80"
         depends_on:
           - account_storage
-          - publish-redis
+          - redis
         volumes:
           - type: bind
             source: ./docker-data/StarSSO/conf
-            target: /etc/StarSSO
+            target: /etc/starsso
+          - type: bind
+            source: ./docker-data/StarSSO/log
+            target: /var/log/starsso
+            
 
-    checkbot:
-        image: checkbot:1.0.1
-        environment:
-          - REDIS_HOST=publish-redis
-          - MYSQL_HOST=account_storage
-          - MYSQL_PASSWORD=123456
-          - MYSQL_DB=starstudio
-          - MYSQL_USER=root
+    #checkbot:
+    #    image: checkbot:1.0.1
+    #    environment:
+    #      - REDIS_HOST=publish-redis
+    #      - MYSQL_HOST=account_storage
+    #      - MYSQL_PASSWORD=your_password
+    #      - MYSQL_DB=starstudio
+    #      - MYSQL_USER=root

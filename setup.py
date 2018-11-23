@@ -8,7 +8,7 @@ def load_requirements():
 setup(
     name = 'StarSSO'
     , description = "Starstudio Single Sign-on Server."
-    , version = '1.0.1'
+    , version = '1.0.2'
     #, packages = find_packages(exclude=['LANDevice', 'LANDevice.*'])
     , packages = [
         'StarMember'
@@ -17,5 +17,11 @@ setup(
     , data_files = [
         'requirements.txt'
     ]
+    , entry_points = {
+        'console_scripts': [
+            'starsso-server = StarMember.cli.server:Core'
+            , 'starsso-manage = StarMember.cli.manage:Manage'
+        ]
+    }
 )
 

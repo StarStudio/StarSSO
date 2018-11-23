@@ -1,7 +1,8 @@
 from flask import request, current_app, jsonify
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.views import SignAPIView, resource_access_denied, with_application_token
-from StarMember.utils import password_hash, get_request_params
+from StarMember.utils.security import password_hash
+from StarMember.utils.param import get_request_params
 from datetime import datetime
 import uuid
 

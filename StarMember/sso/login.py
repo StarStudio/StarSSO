@@ -7,8 +7,8 @@ from traceback import format_exc
 from flask import Blueprint, current_app, make_response, request, abort, jsonify, redirect
 from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
-from StarMember.utils import password_hash
-from StarMember.utils import new_encoded_token, decode_token, get_request_params
+from StarMember.utils.security import password_hash, new_encoded_token, decode_token
+from StarMember.utils.param import get_request_params
 from StarMember.views import require_login, param_error
 from base64 import b64decode
 from datetime import datetime, timedelta

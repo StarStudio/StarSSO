@@ -1,0 +1,16 @@
+apiserver:
+  listen: 0.0.0.0
+  port: 80
+  dashboard:
+    url_root: $SSO_API_HOST
+  redis:
+    host: $SSO_REDIS_HOST
+    port: $SSO_REDIS_PORT
+    prefix: $SSO_REDIS_PREFIX
+  storage:
+    charset: $SSO_MYSQL_CHARSET
+    db: $SSO_MYSQL_DB
+    host: $SSO_MYSQL_HOST
+    password: $SSO_MYSQL_PASSWORD
+    port: $SSO_MYSQL_PORT
+    user: $SSO_MYSQL_USER
