@@ -110,8 +110,6 @@ class Network:
     @property
     def LocalAgentPort(self):
         raw = self._redis.hget(self._redis_info_key, 'AgentLocalPort')
-        print(self._redis_info_key)
-        print(raw)
         if raw is None:
             return None
         return int(raw.decode())

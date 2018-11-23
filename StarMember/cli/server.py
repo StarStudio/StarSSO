@@ -103,8 +103,8 @@ class StarSSO:
         conf.write(yaml.dump(self._cfg.AgentWSGIConfig))
         envs = os.environ.copy()
         run_args = ['python', '-m', 'StarMember.agent']
-        if args.config is not None:
-            envs['API_CFG'] = conf_name
+
+        envs['API_CFG'] = conf_name
         if _block is True:
             result = subprocess.run(run_args, env = envs)
             return result

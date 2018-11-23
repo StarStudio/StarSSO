@@ -11,6 +11,12 @@ class BindView(SignAPIView):
 
     @with_application_token(deny_unauthorization = True)
     def get(self):
+        # Resume context for original bind request
+        ctx = APIRequestContext()
+        if ctx.ResumeFromRequest() and ctx['origin_bind_request'] is True:
+            return self.bind_device(ctx)
+
+
         post_data = get_request_params()
         type_checker = post_data_type_checker(uid = int, gid = int)
         ok, err_msg = type_checker(post_data)
@@ -73,33 +79,7 @@ class BindView(SignAPIView):
 
         return api_succeed([{'uid': uid, 'mac' : list(mac_set)} for uid, mac_set in result.items()])
 
-
-    @with_application_token(deny_unauthorization = True)
-    def post(self):
-
-        ctx = APIRequestContext()
-
-        if not ctx.ResumeFromRequest():
-            post_data = get_request_params()
-            type_checker = post_data_type_checker(mac = str)
-            key_checker = post_data_key_checker('mac')
-            ok, msg = type_checker(post_data)
-            if not ok:
-                return api_wrong_params(msg)
-            ok, msg = key_checker(post_data)
-            if not ok:
-                return api_wrong_params(msg)
-
-            try:
-                mac_int = MACToInt(post_data['mac'])
-            except ValueError as e:
-                return api_wrong_params(str(e))
-
-            if not ctx.MAC:
-                ctx['mac_int'] = mac_int
-                ctx.Suspend()
-                return ctx.RedirectForDeviceInfo()
-
+    def bind_device(self, ctx):
         devices = current_app.device_list.Snapshot2().items()
         if not ctx.Net \
            or ctx.Net.ID not in devices \
@@ -126,6 +106,34 @@ class BindView(SignAPIView):
             conn.commit()
 
         return api_succeed()
+        
+
+    @with_application_token(deny_unauthorization = True)
+    def post(self):
+        ctx = APIRequestContext()
+        if not ctx.ResumeFromRequest():
+            post_data = get_request_params()
+            type_checker = post_data_type_checker(mac = str)
+            key_checker = post_data_key_checker('mac')
+            ok, msg = type_checker(post_data)
+            if not ok:
+                return api_wrong_params(msg)
+            ok, msg = key_checker(post_data)
+            if not ok:
+                return api_wrong_params(msg)
+
+            try:
+                mac_int = MACToInt(post_data['mac'])
+            except ValueError as e:
+                return api_wrong_params(str(e))
+
+            if not ctx.MAC:
+                ctx['mac_int'] = mac_int
+                ctx['origin_bind_request'] = True
+                ctx.Suspend()
+                return ctx.RedirectForDeviceInfo()
+
+        return self.bind_device(ctx)
 
 
 class BindManageView(SignAPIView):

@@ -29,7 +29,11 @@ RUN set -xe;\
 
 COPY ./Docker/env_default.sh /env_default.sh
 COPY ./Docker/apiserver/entrypoint.sh /entrypoint.sh
+COPY ./Docker/apiserver/entrypoint-agent.sh /entrypoint-agent.sh
+COPY ./Docker/apiserver/entrypoint-apiserver.sh /entrypoint-apiserver.sh
 COPY ./Docker/apiserver/apiserver.yml.tmpl /data/apiserver.yml.tmpl
+COPY ./Docker/apiserver/agent.yml.tmpl /data/agent.yml.tmpl
+
 
 RUN set -xe; \
     chmod a+x /entrypoint.sh

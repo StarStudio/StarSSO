@@ -1,0 +1,11 @@
+agent:
+  apiserver_root: $SSO_API_HOST
+  discover:
+    interfaces: $SSO_PROBE_INTERFACE
+    probe_interval: 30
+    probe_timeout: 30
+    track_interval: 5
+  listen: $SSO_LISTEN
+  network_id: /etc/starsso/network_id
+  port: $SSO_PORT
+  register_token: $SSO_NET_TOKEN
