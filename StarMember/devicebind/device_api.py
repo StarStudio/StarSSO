@@ -6,7 +6,7 @@ from .bind import BindView, BindManageView
 from StarMember.agent import DeviceList, LANDeviceProberConfig
 from StarMember.utils.network import NetworkList
 
-bind_api = Blueprint('DeviceBindAPI', __name__, url_prefix = '/v1/star/device')
+bind_api = Blueprint('DeviceBindAPI', __name__, url_prefix = '/device')
 bind_api.add_url_rule('/list', view_func = DeviceListView.as_view('DeviceList'))
 bind_api.add_url_rule('/myself', view_func = MyselfDeviceView.as_view('MyselfDevice'))
 bind_api.add_url_rule('/mine', view_func =  BindView.as_view('Mine'))

@@ -242,7 +242,7 @@ class WSGIAppFactory:
             app.config['REDIS_URL'] = redis_url
 
         # Load common blueprints
-        app.register_blueprint(shim_api)
+        app.register_blueprint(shim_api, url_prefix = app.config['PATH_PREFIX'])
 
         # Logger
         self._generate_logger()
@@ -273,10 +273,10 @@ class WSGIAppFactory:
         app.mysql = mysql
 
         # Blueprint
-        app.register_blueprint(info_api)
-        app.register_blueprint(sso_api)
-        app.register_blueprint(bind_api)
-        app.register_blueprint(net_api)
+        app.register_blueprint(info_api, url_prefix = app.config['PATH_PREFIX'])
+        app.register_blueprint(sso_api, url_prefix = app.config['SSO_PATH_PREFIX'])
+        app.register_blueprint(bind_api, url_prefix = app.config['PATH_PREFIX'])
+        app.register_blueprint(net_api, url_prefix = app.config['PATH_PREFIX'])
 
         # Preprocess
         app.digest_salt = app.config['SALT']
@@ -297,7 +297,7 @@ class WSGIAppFactory:
         if self._app:
             return self._app
 
-        app = Flask(__name__)
+        app = Flask('StarSSO')
         self._app = app
         self._load_common_components()
 
