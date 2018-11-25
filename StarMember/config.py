@@ -369,6 +369,6 @@ class Config(dict):
             , 'LAN_DEV_INTERFACE': self._get_default('agent', 'discover', 'interfaces')
             , 'LAN_DEV_PUBLISH_HOST': self._get_default('agent', 'publish_host')
             , 'LAN_DEV_PUBLISH_PORT': self._get_default('agent', 'publish_port')
-            , 'PATH_PREFIX': self._get_default('apiserver', 'path_prefix')
+            , 'PATH_PREFIX': self._get_default('agent', 'path_prefix')
             , 'TOKEN_PEM': self.TokenPEM
         }

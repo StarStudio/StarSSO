@@ -2,7 +2,7 @@ from flask import Blueprint, current_app
 from .information_shim import InformationShimView
 from StarMember.agent import DeviceList, LANDeviceProberConfig
 
-shim_api = Blueprint('Shims', __name__, url_prefix = '/shim')
+shim_api = Blueprint('Shims', __name__)
 
 shim_api.add_url_rule('/information', view_func = InformationShimView.as_view('Information'))
 
