@@ -230,8 +230,8 @@ class LANDeviceProber:
             Upload local network info.
         '''
         resp = requests.post(self._config.network_api + '/%s' % self.publish_port.NetworkID + '/liveness', json = {
-            'local_ip': self.publish_local_ip
-            , 'local_port': self._config.server_port
+            'local_ip': self.publish_local_ip if not self._config.publish_host else self._config.publish_host
+            , 'local_port': self._config.server_port if self._config.publish_port == 0 else self._config.publish_port
         })
         print('Keepalive : %s ' % resp.json())
         

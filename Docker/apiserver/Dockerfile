@@ -3,7 +3,7 @@ FROM python:3.6.6-alpine3.7
 RUN set -xe;\
     sed -Ei "s/dl-cdn\.alpinelinux\.org/mirrors.tuna.tsinghua.edu.cn/g" /etc/apk/repositories; \
     mkdir /apk-cache; \
-    apk add gettext py-cffi bash libffi-dev openssl-dev musl-dev --cache-dir /apk-cache; \
+    apk add tzdata gettext py-cffi bash libffi-dev openssl-dev musl-dev --cache-dir /apk-cache; \
     rm -rf /apk-cache; \
     rm /etc/localtime; \
     ln -s /usr/share/zoneinfo/Asia/Shanghai /etc/localtime

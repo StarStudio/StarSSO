@@ -60,6 +60,9 @@ class Config(dict):
         , ('agent', 'discover', 'probe_interval'): 30
         , ('agent', 'discover', 'probe_timeout'): 30
         , ('agent', 'discover', 'interfaces'): 'wlp3s0'
+ 	, ('agent', 'network_id'): '/etc/starsso/network_id'
+	, ('agent', 'publish_host'): ''
+	, ('agent', 'publish_port'): 0
     }
 
     def __init__(self, _raw = None):
@@ -360,5 +363,7 @@ class Config(dict):
             , 'LAN_DEV_LIVENESS_PROBE_INTERVAL': self._get_default('agent', 'discover', 'probe_interval')
             , 'LAN_DEV_LIVENESS_PROBE_TIMEOUT': self._get_default('agent', 'discover', 'probe_timeout')
             , 'LAN_DEV_INTERFACE': self._get_default('agent', 'discover', 'interfaces')
+            , 'LAN_DEV_PUBLISH_HOST': self._get_default('agent', 'publish_host')
+            , 'LAN_DEV_PUBLISH_PORT': self._get_default('agent', 'publish_port')
             , 'TOKEN_PEM': self.TokenPEM
         }
