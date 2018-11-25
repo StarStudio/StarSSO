@@ -34,8 +34,9 @@ class LogoutView(MethodView):
                         resp = make_response('Invalid login state.', 200)
                 else:
                         resp = make_response('Logout.', 200)
-    
-            resp.set_cookie('token', expires = 0, path = url_for('.'))
+             
+            path = Href(current_app.config['SSO_PATH_PREFIX'])(current_app.blueprints[request.blueprint].url_prefix)
+            resp.set_cookie('token', expires = 0, path = path)
 
         return resp  
         

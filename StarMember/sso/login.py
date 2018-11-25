@@ -13,6 +13,8 @@ from StarMember.views import require_login, param_error
 from base64 import b64decode
 from datetime import datetime, timedelta
 
+from werkzeug.urls import Href
+
 class LoginView(MethodView):
     method = ['POST', 'GET']
 
@@ -132,7 +134,8 @@ class LoginView(MethodView):
 
 
             if new_auth_token:
-                resp.set_cookie('token', value = new_auth_token, domain = request.environ['HTTP_HOST'], expires = new_auth_token_expire.timestamp(), path = url_for('.'))
+                path = Href(current_app.config['SSO_PATH_PREFIX'])(current_app.blueprints[request.blueprint].url_prefix)
+                resp.set_cookie('token', value = new_auth_token, domain = request.environ['HTTP_HOST'], expires = new_auth_token_expire.timestamp(), path = path)
  
         except Exception as e:
             expection_id = uuid.uuid4()
