@@ -54,6 +54,7 @@ CREATE TABLE `application` (
   `name` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `desp` text COLLATE utf8mb4_unicode_ci NOT NULL,
   `redirect_prefix` text COLLATE utf8mb4_unicode_ci NOT NULL,
+  `extra_meta` BLOB NOT NULL,
   PRIMARY KEY (`id`)
 ) ENGINE=InnoDB AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 /*!40101 SET character_set_client = @saved_cs_client */;
