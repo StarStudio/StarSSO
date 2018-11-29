@@ -25,7 +25,7 @@ if ! [ -e "$CONF_PATH" ]; then
 
     environ_set_default
     print_setting
-    envsubst < /data/apiserver.yml.tmpl >> "$CONF_PATH"
+    envsubst < /data/agent.yml.tmpl >> "$CONF_PATH"
 fi
 
 starsso-server $*

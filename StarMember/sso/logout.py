@@ -1,6 +1,6 @@
 import uuid
 
-from flask import current_app, request, make_response
+from flask import current_app, request, make_response, url_for
 from flask.views import MethodView
 from traceback import format_exc
 from StarMember.aspect import post_data_type_checker
@@ -34,8 +34,9 @@ class LogoutView(MethodView):
                         resp = make_response('Invalid login state.', 200)
                 else:
                         resp = make_response('Logout.', 200)
-    
-            resp.set_cookie('token', expires = 0, path = '/sso')
+             
+            path = Href(current_app.config['SSO_PATH_PREFIX'])(current_app.blueprints[request.blueprint].url_prefix)
+            resp.set_cookie('token', expires = 0, path = path)
 
         return resp  
         

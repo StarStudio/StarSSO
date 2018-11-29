@@ -28,6 +28,7 @@ from .utils.security import password_hash
 from .config import ConfigureError
 from datetime import datetime
 
+from werkzeug.urls import Href
 
 def make_log_time_wrapper(_function): 
     @wraps(_function)
@@ -242,7 +243,7 @@ class WSGIAppFactory:
             app.config['REDIS_URL'] = redis_url
 
         # Load common blueprints
-        app.register_blueprint(shim_api)
+        app.register_blueprint(shim_api, url_prefix = Href(app.config['PATH_PREFIX'])('shim'))
 
         # Logger
         self._generate_logger()
@@ -273,10 +274,10 @@ class WSGIAppFactory:
         app.mysql = mysql
 
         # Blueprint
-        app.register_blueprint(info_api)
-        app.register_blueprint(sso_api)
-        app.register_blueprint(bind_api)
-        app.register_blueprint(net_api)
+        app.register_blueprint(info_api, url_prefix = Href(app.config['PATH_PREFIX'])('info'))
+        app.register_blueprint(sso_api, url_prefix = Href(app.config['SSO_PATH_PREFIX'])('sso'))
+        app.register_blueprint(bind_api, url_prefix = Href(app.config['PATH_PREFIX'])('device'))
+        app.register_blueprint(net_api, url_prefix = Href(app.config['PATH_PREFIX'])('local_network'))
 
         # Preprocess
         app.digest_salt = app.config['SALT']
@@ -297,7 +298,7 @@ class WSGIAppFactory:
         if self._app:
             return self._app
 
-        app = Flask(__name__)
+        app = Flask('StarSSO')
         self._app = app
         self._load_common_components()
 

@@ -4,7 +4,7 @@ import werkzeug
 import json
 
 from traceback import format_exc
-from flask import Blueprint, current_app, make_response, request, abort, jsonify, redirect
+from flask import Blueprint, current_app, make_response, request, abort, jsonify, redirect, url_for
 from flask.views import MethodView
 from StarMember.aspect import post_data_type_checker, post_data_key_checker
 from StarMember.utils.security import password_hash, new_encoded_token, decode_token
@@ -13,6 +13,7 @@ from StarMember.views import require_login, param_error
 from base64 import b64decode
 from datetime import datetime, timedelta
 
+from werkzeug.urls import Href
 
 class LoginView(MethodView):
     method = ['POST', 'GET']
@@ -133,7 +134,8 @@ class LoginView(MethodView):
 
 
             if new_auth_token:
-                resp.set_cookie('token', value = new_auth_token, domain = request.environ['HTTP_HOST'], expires = new_auth_token_expire.timestamp(), path = '/sso')
+                path = Href(current_app.config['SSO_PATH_PREFIX'])(current_app.blueprints[request.blueprint].url_prefix)
+                resp.set_cookie('token', value = new_auth_token, domain = request.environ['HTTP_HOST'], expires = new_auth_token_expire.timestamp(), path = path)
  
         except Exception as e:
             expection_id = uuid.uuid4()

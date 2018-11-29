@@ -46,6 +46,8 @@ class Config(dict):
         , ('apiserver', 'access_control', 'user_initial_access'): ['auth', 'read_self', 'read_internal', 'read_other', 'write_self', 'read_group']
         , ('apiserver', 'access_control', 'app_initial_access'): ['auth', 'read_self']
         , ('apiserver', 'dashboard', 'url_root'): 'http://sso.local.com'
+        , ('apiserver', 'sso_path_prefix'): '/'
+        , ('apiserver', 'path_prefix'): '/'
 
         , ('log', 'access'): '/var/log/starsso/access.log'
         , ('log', 'error'): '/var/log/starsso/error.log'
@@ -60,6 +62,9 @@ class Config(dict):
         , ('agent', 'discover', 'probe_interval'): 30
         , ('agent', 'discover', 'probe_timeout'): 30
         , ('agent', 'discover', 'interfaces'): 'wlp3s0'
+ 	, ('agent', 'network_id'): '/etc/starsso/network_id'
+	, ('agent', 'publish_host'): ''
+	, ('agent', 'publish_port'): 0
     }
 
     def __init__(self, _raw = None):
@@ -346,6 +351,8 @@ class Config(dict):
             , 'SERVER_HOST': self._get_default('apiserver', 'listen')
             , 'SERVER_PORT': self._get_default('apiserver', 'port')
             , 'LAN_DEV_REDIS_PROBER_IDENT_PREFIX': self._get_default('apiserver', 'redis', 'prefix')
+            , 'SSO_PATH_PREFIX': self._get_default('apiserver', 'sso_path_prefix')
+            , 'PATH_PREFIX': self._get_default('apiserver', 'path_prefix')
         }
 
     @property
@@ -360,5 +367,8 @@ class Config(dict):
             , 'LAN_DEV_LIVENESS_PROBE_INTERVAL': self._get_default('agent', 'discover', 'probe_interval')
             , 'LAN_DEV_LIVENESS_PROBE_TIMEOUT': self._get_default('agent', 'discover', 'probe_timeout')
             , 'LAN_DEV_INTERFACE': self._get_default('agent', 'discover', 'interfaces')
+            , 'LAN_DEV_PUBLISH_HOST': self._get_default('agent', 'publish_host')
+            , 'LAN_DEV_PUBLISH_PORT': self._get_default('agent', 'publish_port')
+            , 'PATH_PREFIX': self._get_default('agent', 'path_prefix')
             , 'TOKEN_PEM': self.TokenPEM
         }

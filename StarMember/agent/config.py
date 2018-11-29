@@ -14,8 +14,10 @@ class LANDeviceProberConfig:
             , ('api_server_domain', 'LAN_DEV_APISERVER_DOMAIN', str)
             , ('network_id_file', 'LAN_DEV_NETWORK_ID', str)
             , ('register_token', 'LAN_DEV_REGISTER_TOKEN', str)
-            , ('server_port', 'LAN_DEV_API_SERVER_PORT', int)
-            , ('publish_host', 'LAN_DEV_PUBLISH_HOST', int)
+            , ('server_port', 'SERVER_PORT', int)
+            , ('server_host', 'SERVER_HOST', str)
+            , ('publish_host', 'LAN_DEV_PUBLISH_HOST', str)
+            , ('publish_port', 'LAN_DEV_PUBLISH_PORT', int)
         ])
 
     probe_timeout = 5
@@ -29,7 +31,9 @@ class LANDeviceProberConfig:
     network_id_file = 'network_id'
     register_token = ''
     server_port = 8001
-    publish_host = None
+    server_host = ''
+    publish_host = ''
+    publish_port = 0
 
     def FromEnv(self, _env):
         '''

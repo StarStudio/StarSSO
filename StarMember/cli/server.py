@@ -29,8 +29,8 @@ class StarSSO:
     parser.add_argument('-c', '--config', help = 'Use specified configure file. Otherwise, configure file specified by Environment Variable API_CFG will be used.', type = str, default = None)
     parser.add_argument('-l', '--listen', help = 'Listen to address for incoming requests.', type = str, default = None)
     parser.add_argument('-p', '--port', help = 'Listen to port for incoming requests.', type = int, default = None)
-    #parser.add_argument('--local-publish-port', help = 'Publish port for local network. Default to listening port.', type = int)
-    #parser.add_argument('--local-publish-ip', help = 'Publish IP for local network. Default to listening address.', type = str)
+    parser.add_argument('--publish-port', help = 'Publish port for local network. Default to listening port.', type = int, default = 0)
+    parser.add_argument('--publish-host', help = 'Publish IP for local network. Default to listening address.', type = str, default = None)
     parser.add_argument('--worker-count', help = 'Gunicorn worker instances', type = int, default = 10)
     parser.add_argument('--worker-connections', help = 'Gunicorn worker connections', type = int, default = 1000)
     parser.add_argument('--access-log', help = 'Specified access log file.', type = str, default = None)
@@ -54,9 +54,14 @@ class StarSSO:
             conf_file.write(conf_dict)
 
         elif _mode == 'Agent':
-            conf_dict = yaml.dump(self._cfg.AgentWSGIConfig)
+            if args.publish_port != 0 and args.publish_port != None:
+                self._cfg['agent']['publish_port'] = args.publish_port
+            if args.publish_host:
+                self._cfg['agent']['publish_host'] = args.publish_host
+
             if isinstance(args.register_token, str):
-                conf_dict['LAN_DEV_REGISTER_TOKEN'] = args.register_token
+                self._cfg['agent']['register_token'] = args.register_token
+            conf_dict = yaml.dump(self._cfg.AgentWSGIConfig)
             conf_file.write(conf_dict)
 
         conf_file.close()
@@ -119,8 +124,8 @@ class StarSSO:
         conf.write(yaml.dump(self._cfg.MasterWSGIConfig))
         envs = os.environ.copy()
         run_args = ['python', '-m', 'StarMember.checkbot']
-        if args.config is not None:
-            envs['API_CFG'] = conf_name
+
+        envs['API_CFG'] = conf_name
         if _block is True:
             result = subprocess.run(run_args, env = envs)
             return result

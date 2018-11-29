@@ -3,7 +3,7 @@ from .group import GroupAPIView
 from .member import MemberAPIView, MemberAccessView
 #from .token import TokenAuthView
 
-info_api = Blueprint("MemberAPI", __name__, url_prefix = "/v1/star")
+info_api = Blueprint("InfoAPI", __name__)
 
 @info_api.route('/',  methods=['GET', 'POST', 'OPTIONS'])
 def ping():
