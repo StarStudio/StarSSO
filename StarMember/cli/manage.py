@@ -12,6 +12,7 @@ sys.path.append(os.getcwd())
 from StarMember.config import Config, ConfigureError
 from StarMember.wsgi import WSGIAppFactory
 from StarMember.utils.security import password_hash
+from StarMember.utils.application import ApplicationMetadata
 from StarMember.utils.lan_register_token import get_avaliable_token, new_register_token, append_new_token, remove_token
 from flask import current_app
 
@@ -164,6 +165,102 @@ def reset_admin_application(config, persist_conf):
         finally:
             conn.commit()
     click.echo('Administration application reset.')
+
+
+@application.group()
+def wechat():
+    pass
+
+
+@wechat.command('info', help = 'Show metadata about wechat in application')
+@common_options
+def show_wechat_meta_info(persist_conf, config):
+    pass
+
+def update_application_metadata(application_id, key_path, value):
+    '''
+        Update specified application metadata.
+
+        :return:
+            None if no errors.
+            Otherwise, return error message string.
+    '''
+    conn = current_app.mysql.connect()
+    conn.begin()
+    c = conn.cursor()
+    try:
+        affected = c.execute('select extra_meta from application where id=%s for update', (application_id,))
+        if affected < 1:
+            conn.commit()
+            return 'No such application (id = %s)' % application_id
+        raw = c.fetchall()[0][0]
+        meta = ApplicationMetadata()
+        meta.raw = raw
+        meta._delete_key(*key_path)
+        if value is not None and value is not '':
+            meta._set_default(*key_path, default = value)
+        affected = c.execute('update application set extra_meta=%s where id=%s', (meta.raw, application_id))
+        conn.commit()
+    except Exception as e:
+        conn.rollback()
+        return 'Unexcepted error occurs : %s' % str(e)
+
+    return None
+
+    
+@wechat.command('set-appid', help = 'Set Wechat appid')
+@click.argument('wechat_appid', nargs = 1)
+@click.argument('application_id', nargs = 1)
+@common_options
+def set_wechat_appid(wechat_appid, application_id, persist_conf, config):
+    try:
+        app = load_wsgi_app(config, persist_conf)
+    except ConfigureError as e:
+        click.echo(e)
+        return 1
+
+    try:
+        application_id = int(application_id)
+    except ValueError as e:
+        click.echo('Application ID should be an integer: %s' % str(e))
+        return 2
+
+    with app.app_context():
+        msg = update_application_metadata(application_id, ('wechat', 'appid'), wechat_appid)
+    if msg:
+        click.echo(msg)
+        return 3
+    click.echo('Wechat appid updated: %s' % wechat_appid)
+
+    return 0
+
+
+@wechat.command('set-appsecret', help = 'Set Wechat appSecret')
+@click.argument('application_id', nargs = 1)
+@click.argument('wechat_appsecret', nargs = 1)
+@common_options
+def set_wechat_appsecret(wechat_appsecret, application_id, persist_conf, config):
+    try:
+        app = load_wsgi_app(config, persist_conf)
+    except ConfigureError as e:
+        click.echo(e)
+        return 1
+
+    try:
+        application_id = int(application_id)
+    except ValueError as e:
+        click.echo('Application ID should be an integer: %s' % str(e))
+        return 2
+
+    with app.app_context():
+        msg = update_application_metadata(application_id, ('wechat', 'app_secret'), wechat_appsecret)
+
+    if msg:
+        click.echo(msg)
+        return 3
+    click.echo('Wechat app secret updated: %s' % wechat_appsecret)
+
+    return 0
 
 
 # Network Management
