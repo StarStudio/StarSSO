@@ -1,0 +1,8 @@
+stages:
+  - build
+
+build-docker-image:
+    stage: build
+    script:
+      - git clone $CI_REPOSITORY_URL --branch $CI_COMMIT_REF_NAME
+      - ls
