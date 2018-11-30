@@ -15,13 +15,8 @@ from functools import wraps
 from struct import pack, unpack
 
 
-def resource_access_denied():
-    return make_response(jsonify({'code': 1201, 'msg': 'You have no access to this resources', 'data': ''}), 403)
-
-def require_login(_realm = 'You are not logined.'):
-    resp = make_response(jsonify({'code': 1201, 'msg': 'No Authorization', 'data': ''}), 401)
-    resp.headers['WWW-Authenticate'] = 'Basic realm="%s"' % _realm
-    return resp
+def resource_access_denied(_msg = 'You have no access to this resources'):
+    return make_response(jsonify({'code': 1201, 'msg': _msg, 'data': ''}), 403)
 
 def param_error(_msg = 'Wrong params'):
     return make_response(jsonify({'code': 1422, 'msg': _msg, 'data': ''}), 200)

@@ -6,6 +6,8 @@ from jwcrypto.common import JWException
 from base64 import b64encode
 from os.path import isfile, isdir
 
+from StarMember.utils.config import ConfigMap
+
 
 def stringwise_representer(dumper, data):
     if isinstance(data, str) and '\n' in data:
@@ -17,7 +19,7 @@ yaml.add_representer(str, stringwise_representer)
 class ConfigureError(Exception):
     pass
 
-class Config(dict):
+class Config(ConfigMap):
     '''
         Base configure class.
     '''
@@ -38,16 +40,17 @@ class Config(dict):
         , ('apiserver', 'storage', 'charset'): 'utf8'
         , ('apiserver', 'access_control', 'register'): True
         , ('apiserver', 'access_control', 'anonymous_group_info'): False
+        , ('apiserver', 'access_control', 'user_initial_access'): ['auth', 'read_self', 'read_internal', 'read_other', 'write_self', 'read_group']
+        , ('apiserver', 'access_control', 'app_initial_access'): ['auth', 'read_self']
         , ('apiserver', 'redis', 'host'): 'localhost'
         , ('apiserver', 'redis', 'port'): 6379
         , ('apiserver', 'redis', 'prefix'): 'LANDEV_DEFAULT'
         , ('apiserver', 'listen') : '0.0.0.0'
         , ('apiserver', 'port'): 10029
-        , ('apiserver', 'access_control', 'user_initial_access'): ['auth', 'read_self', 'read_internal', 'read_other', 'write_self', 'read_group']
-        , ('apiserver', 'access_control', 'app_initial_access'): ['auth', 'read_self']
         , ('apiserver', 'dashboard', 'url_root'): 'http://sso.local.com'
         , ('apiserver', 'sso_path_prefix'): '/'
         , ('apiserver', 'path_prefix'): '/'
+        , ('apiserver', 'wechat', 'api', 'code2sesison') : 'https://api.weixin.qq.com/sns/jscode2session'
 
         , ('log', 'access'): '/var/log/starsso/access.log'
         , ('log', 'error'): '/var/log/starsso/error.log'
@@ -66,45 +69,6 @@ class Config(dict):
 	, ('agent', 'publish_host'): ''
 	, ('agent', 'publish_port'): 0
     }
-
-    def __init__(self, _raw = None):
-        self._cfg = self.Load(_raw)
-
-
-    def Load(self, _raw):
-        '''
-            Load configure.
-
-            :params:
-                
-        '''
-        if _raw is None or len(_raw) < 1:
-            return self
-        self.update(yaml.load(_raw))
-        return self
-
-
-    def LoadFromFile(self, _path):
-        if not isfile(_path):
-            if not isdir(os.path.dirname(_path)) and os.path.dirname(_path) != '':
-                os.makedirs(os.path.dirname(_path))
-            open(_path, 'wt').close()
-            return self
-
-        return self.Load(open(_path, 'rt').read())
-
-        
-
-    def DumpToFile(self, _path):
-        open(_path, 'wt').write(self.Dump())
-            
-        
-    def Dump(self):
-        '''
-            Dump configure.
-        '''
-        
-        return yaml.dump(dict(self), default_flow_style = False)
 
     @property
     def TokenPublicPEM(self):
@@ -274,54 +238,6 @@ class Config(dict):
             raise ConfigureError('Unacceptable storage type: %s' % storage)
         return salt_text
 
-
-    def _get_default(self, *args, **kwargs):
-        '''
-            Get value from specified dict path.
-
-            :example:
-                _get_default('key1', 'key2', ..., 'keyN', default = 'Value')
-
-                This call of _get_default tries to get self['key1']['key2']...['keyN'].
-                If any key through the path doesn't exists, return 'Value'.
-                
-                The param 'defualt' is optional.
-        '''
-        prev = None
-        this = self
-        set_default = False
-        for key in args:
-            if key not in this:
-                this[key] = {}
-                set_default = True
-            prev = this
-            this = this.get(key)
-        if set_default:
-            this = kwargs.get('default', None)
-            if this is None:
-                this = Config.DEFAULT_VALUES.get(tuple(args), None)
-            prev[key] = this
-        return this
-
-    def _set_default(self, *args, **kwargs):
-        '''
-            Set value to specified dict path.
-
-            :example:
-                _set_default('key1', 'key2', ..., 'keyN', default = 'Value')
-
-                This call of _set_default set self['key1']['key2']...['keyN'] = 'Value'.
-        '''
-        prev = None
-        this = self
-        for key in args:
-            if key not in this:
-                this[key] = {}
-            prev = this
-            this = this.get(key)
-        prev[args[-1]] = kwargs['default']
-
-
     @property
     def MasterWSGIConfig(self):
         self.GetJWK(_auto_gen = True)
@@ -353,6 +269,7 @@ class Config(dict):
             , 'LAN_DEV_REDIS_PROBER_IDENT_PREFIX': self._get_default('apiserver', 'redis', 'prefix')
             , 'SSO_PATH_PREFIX': self._get_default('apiserver', 'sso_path_prefix')
             , 'PATH_PREFIX': self._get_default('apiserver', 'path_prefix')
+            , 'WECHAT_CODE2SESSION_API': self._get_default('apiserver', 'wechat', 'api', 'code2sesion')
         }
 
     @property
