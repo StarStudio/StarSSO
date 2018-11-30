@@ -11,7 +11,7 @@ build_sdist_sso() {
     fi
 
     pushd "$PROJECT_ROOT" >> /dev/null
-    docker run -it -v "$(pwd):/data/" "$BUILD_ENV_IMAGE_NAME" sh -c 'cd /data/ && python setup.py sdist'
+    docker run -v "$(pwd):/data/" "$BUILD_ENV_IMAGE_NAME" sh -c 'cd /data/ && python setup.py sdist'
     BUILD_FAIL=$?
     popd >> /dev/null
     if ! [ $BUILD_FAIL -eq 0 ]; then

@@ -1,6 +1,8 @@
 FROM python:3.6.6-alpine3.7
 
 RUN set -xe;\
+    echo [easy_install] >> ~/.pydistutils.cfg ;\
+    echo index-url=https://pypi.tuna.tsinghua.edu.cn/simple >> ~/.pydistutils.cfg; \
     sed -Ei "s/dl-cdn\.alpinelinux\.org/mirrors.tuna.tsinghua.edu.cn/g" /etc/apk/repositories; \
     mkdir /apk-cache; \
     apk add tzdata gettext py-cffi bash libffi-dev openssl-dev musl-dev --cache-dir /apk-cache; \
@@ -13,8 +15,6 @@ ARG DIST_VERSION
 COPY ./dist/StarSSO.tar.gz /docker-build/
 
 RUN set -xe;\
-    echo [easy_install] >> ~/.pydistutils.cfg ;\
-    echo index-url=https://pypi.tuna.tsinghua.edu.cn/simple >> ~/.pydistutils.cfg; \
     mkdir /apk-cache; \
     apk add gcc g++ linux-headers --cache-dir /apk-cache -t build-deps; \
     cd /docker-build; \

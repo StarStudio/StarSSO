@@ -1,8 +1,18 @@
+image: docker:stable
+
 stages:
   - build
+
+variables:
+    DOCKER_HOST: tcp://docker:2375/
+    DOCKER_DRIVER: overlay2
+
+services:
+  - docker:dind
 
 build-docker-image:
     stage: build
     script:
-      - git clone $CI_REPOSITORY_URL --branch $CI_COMMIT_REF_NAME
-      - ls
+      #- yum install docker-client -y
+      - apk add bash
+      - bash ./docker-gitlab-ci-build.sh
